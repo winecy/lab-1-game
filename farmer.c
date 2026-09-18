@@ -2,6 +2,8 @@
 #define INVENTORY_SIZE 10
 int main() 
 {   
+    int slot, item_id;
+    int work_hours;
     int choice; 
     int current_day = 1;
     int current_hour = 8;
@@ -41,7 +43,6 @@ int main()
                 break;
 
             case 2: {
-                int work_hours;
                 printf("\nСколько часов работать? ");
                 scanf("%d", &work_hours);
 
@@ -49,6 +50,7 @@ int main()
                     printf("[Ошибка]: Неправильный ввод!\n");
                     break;
                 }
+                current_hour = current_hour + work_hours;
 
                 if (current_hour >= 24) {
                     current_day = current_day + (current_hour / 24); 
@@ -82,7 +84,6 @@ int main()
                 break;
 
             case 4: {
-                int slot, item_id;
                 printf("\nВведите индекс слота (от 0 до 9): ");
                 scanf("%d", &slot);
                 printf("Введите ID предмета: ");
@@ -98,7 +99,6 @@ int main()
             }
 
             case 5: {
-                int slot;
                 printf("\nВведите индекс слота для очистки (от 0 до 9): ");
                 scanf("%d", &slot);
 
