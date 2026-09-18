@@ -427,3 +427,10 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+# === Linux Specific ===
+.directory
+*.swp
+*~
+.fuse_hidden*
+.Trash-*
+.nfs*
