@@ -125,7 +125,27 @@ int main() // главаная функция
           }
       }
     }
-    
+    case 5:
+    {
+      printf("Выберите ячейку инвентаря:\n");
+      
+      if (scanf("%d", &item_slot) != 1) 
+        {
+        printf("Ошибка ввода! Введите число от 0 до 9\n");
+        while (getchar() != '\n'); // чистка буфера
+        break;
+        }
+      
+      if (item_slot > 9 || item_slot < 0) 
+        {
+        printf("Неверный номер слота!Введите значение от 0 до 9\n");
+        break;
+        } else {
+          inventory[item_slot] = 0;
+          break;
+    }
+    }
+
     default: // если ввод неправильный
     {
       printf("Неверный ввод\n");
