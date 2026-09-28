@@ -3,17 +3,29 @@
 
 int main() // главаная функция
 {
+  
   // все переменные
   int current_day = 1;
   int current_hour = 8;
   int userAction;
-  int work_hours;
   int work_time;
+  int item_slot;
+  int item_id;
 
   static int inventory[inventory_size] = {
-      0, 1, 2, 3, 4,
-      5, 6, 7, 8, 9}; // создаем инвентарь(массив) с предметами(цифры я взял как
-                                          // id, для отличия предметов, ведь массив это нолики)
+      0,
+      1, 
+      2, 
+      3, 
+      4,
+      5, 
+      6, 
+      7, 
+      8, 
+      9};  
+       // создаем инвентарь(массив) с предметами(цифры я взял как
+       // id, для отличия предметов, ведь массив это нолики)
+  
   /*0 – пусто,
   1 – дерево,
   2 – камень,
@@ -24,47 +36,100 @@ int main() // главаная функция
   7 – грибы,
   8 – седло,
   9 – морковь*/
-  while (1) {
+  
+  while (1) 
+    {
     printf("Выберите пункт:\n");
-    if (scanf("%d", &userAction) != 1) {
-        printf("Ошибка ввода! Введите число.\n");
-        while (getchar() != '\n'); // чистка буфера 
-        continue;
-    }
+    if (scanf("%d", &userAction) != 1) 
+      {
+      printf("Ошибка ввода! Введите число.\n");
+      while (getchar() != '\n'); // чистка буфера
+      continue;
+      }
+    
     switch (userAction) // действия в зависимости от выбора
     {
+    
     case 0: // завершение работы проги
-    {
+      {
       printf("Пока-пока!\n");
       return 0;
       break;
-    }
+      }
+    
     case 1: // вывести время
+      {
       printf("Текущее время: %d день %d час\n", current_day, current_hour);
       break;
-
+      }
+    
     case 2: // поработать
+      {
       printf("Сколько работаем?\n");
       scanf("%d", &work_time);
       current_hour += work_time;
       printf("Работаем...\n");
-      if (current_hour >= 24) {
+      if (current_hour >= 24) 
+        {
         current_day += current_hour / 24;
         current_hour = current_hour % 24;
-      }
+        }
       break;
+      }
     
-    case 3: {
-        printf("Инвентарь:\n");
-        for (int i = 0; i < inventory_size; i++) {
+    case 3: 
+      {
+      printf("Инвентарь:\n");
+      for (int i = 0; i < inventory_size; i++) 
+        {
         printf("Слот %d: [%d]\n", i, inventory[i]);
         }
+      break;
+      }
+    
+    case 4: 
+      {
+      printf("Выберите ячейку инвентаря:\n");
+      
+      if (scanf("%d", &item_slot) != 1) 
+        {
+        printf("Ошибка ввода! Введите число от 0 до 9\n");
+        while (getchar() != '\n'); // чистка буфера
         break;
+        }
+      
+      if (item_slot > 9 || item_slot < 0) 
+        {
+        printf("Неверный номер слота!Введите значение от 0 до 9\n");
+        break;
+        } else {
+        
+        printf("Выберите id предмета:\n");
+        
+        if (scanf("%d", &item_id) != 1) 
+          {
+          printf("Ошибка ввода! Введите число от 0 до 9.\n");
+          while (getchar() != '\n'); // чистка буфера
+          break;
+          }
+        
+        if (item_id > 9 || item_id < 0) 
+          {
+          printf("Такого предмета нет!Введите id предмета от 0 до 9\n");
+          while (getchar() != '\n'); // чистка буфера
+          break;
+          } else {
+          
+          inventory[item_slot] = item_id;
+          break;
+          }
+      }
     }
+    
     default: // если ввод неправильный
     {
-        printf("Неверный ввод\n");
-        break;
+      printf("Неверный ввод\n");
+      break;
     }
     }
   }
