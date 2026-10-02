@@ -11,6 +11,7 @@ int main() // главаная функция
   int work_time;
   int item_slot;
   int item_id;
+  
 
   static int inventory[inventory_size] = {
       0,
@@ -145,6 +146,34 @@ int main() // главаная функция
           break;
     }
     }
+
+    case 6:
+    {
+      int unique_items = 0;
+      int items[10] = {0};
+      for (int i = 0; i < inventory_size; i++) 
+        {
+        int id = inventory[i];
+        if (id >= 0 && id <= 9) 
+          {
+          items[id]++;
+          }
+        }
+      for (int id = 1; id <= 9; id++) // начинаем с 1, чтобы проигнорировать 0
+        {
+        if (items[id] > 0) 
+          {
+          printf("Предмет %d: %d штук\n", id, items[id]);
+          unique_items = unique_items + 1;
+          }
+        }
+        printf("Всего уникальных предметов: %d\n", unique_items);
+        if (!unique_items) 
+          {
+          printf("Инвнтарь пуст.\n");
+          }
+        break;
+      }
 
     default: // если ввод неправильный
     {
