@@ -74,14 +74,19 @@ int main() // главаная функция
       {
       printf("Сколько работаем?\n");
       scanf("%d", &work_time);
-      current_hour += work_time;
-      printf("Работаем...\n");
-      if (current_hour >= 24) 
-        {
-        current_day += current_hour / 24;
-        current_hour = current_hour % 24;
-        }
-      break;
+      if (work_time>=0){
+        current_hour += work_time;
+        printf("Работаем...\n");
+        if (current_hour >= 24) 
+            {
+            current_day += current_hour / 24;
+            current_hour = current_hour % 24;
+            }
+        break;
+      }else{
+        printf("Такое невозможно.Введите корректное количество часов.\n");
+        break;
+      }
       }
     
     case 3: 
