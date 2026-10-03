@@ -1,6 +1,18 @@
 #include <stdio.h>
 #define inventory_size 10
 
+const char *inventory_name[inventory_size] = {
+    "пусто",
+    "дерево",
+    "камень",
+    "семена",
+    "картошка",
+    "кирка",
+    "пшено",
+    "грибы",
+    "седло",
+    "морковь"};
+
 int main() // главаная функция
 {
   
@@ -11,8 +23,8 @@ int main() // главаная функция
   int work_time;
   int item_slot;
   int item_id;
-  
 
+  
   static int inventory[inventory_size] = {
       0,
       1, 
@@ -83,7 +95,7 @@ int main() // главаная функция
       printf("Инвентарь:\n");
       for (int i = 0; i < inventory_size; i++) 
         {
-        printf("Слот %d: [%d]\n", i, inventory[i]);
+        printf("Слот %d: %s [%d]\n", i,inventory_name[inventory[i]], inventory[i]);
         }
       break;
       }
@@ -163,7 +175,7 @@ int main() // главаная функция
         {
         if (items[id] > 0) 
           {
-          printf("Предмет %d: %d штук\n", id, items[id]);
+          printf("Предмет %s: %d штук\n", inventory_name[id], items[id]);
           unique_items = unique_items + 1;
           }
         }
