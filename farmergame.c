@@ -174,7 +174,7 @@ int main() // главаная функция
           }
         }
         printf("Всего уникальных предметов: %d\n", unique_items);
-        if (!unique_items) 
+        if (unique_items == 0) 
           {
           printf("Инвнтарь пуст.\n");
           }
