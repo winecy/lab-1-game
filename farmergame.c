@@ -66,8 +66,6 @@ int main() // главаная функция
     
     case 1: // вывести время
       {
-      current_day += current_hour / 24;
-      current_hour = current_hour % 24;
       printf("Текущее время: %d день %d час\n", current_day, current_hour);
       break;
       }
