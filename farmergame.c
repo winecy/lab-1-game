@@ -52,9 +52,17 @@ void case3_show_inventory()
   printf("Инвентарь:\n");
   for (int i = 0; i < inventory_size; i++) 
     {
-    // Убрано упоминание удаленного массива inventory_name
-    printf("Слот %d: [%d]\n", i, inventory[i]);
+    int id = inventory[i];
+    
+    if (id >= 0 && id < MAX_ITEMS) 
+    {
+        printf("Слот %d: [%d] - %s\n", i, id, item_names[id]);
+    } 
+    else 
+    {
+        printf("Слот %d: [%d] - Неизвестный предмет\n", i, id);
     }
+  }
 }
 
 void case4_put_item() 
@@ -180,11 +188,12 @@ void item_catalog() {
 
     // Закрываем
     fclose(file);
-    printf("[Успех]: Каталог предметов успешно загружен из items.txt (%d предметов).\n", count);
+    printf("Каталог предметов успешно загружен(%d предметов).\n", count);
 }
 
 int main() // главаная функция
 {
+  item_catalog();
   while (1) 
   {
       printf("Введите имя вашего персонажа: ");
