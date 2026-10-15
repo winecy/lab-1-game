@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <string.h>
+
 #define inventory_size 10
 #define player_name_max 32
+#define MAX_ITEMS 10
+#define MAX_NAME_LEN 50
 
 int current_day = 1;
 int current_hour = 8;
@@ -11,6 +14,8 @@ int item_slot;
 int item_id;
 
 char player_name[player_name_max];
+char item_names[MAX_ITEMS][MAX_NAME_LEN];
+
 
 
 int inventory[inventory_size] = {
@@ -140,7 +145,43 @@ void case6_unique()
       }
 }
 
+void item_catalog() {
+    //Пытаемся открыть файл 
+    FILE *file = fopen("items.txt", "r");
+    
+    //стандартные названия
+    char default_names[MAX_ITEMS][MAX_NAME_LEN] = {
+        "Пусто", "Дерево", "Камень", "Семена", "Картошка", 
+        "Кирка", "Пшено", "Грибы", "Седло", "Морковь"
+    };
 
+    //если файл не найден
+    if (file == NULL) {
+        printf("\n[Предупреждение]: Файл items.txt не найден! Загружены названия по умолчанию.\n");
+        for (int i = 0; i < MAX_ITEMS; i++) {
+            strcpy(item_names[i], default_names[i]); // копируем строки из дефолтных
+        }
+        return; // выходим из функции
+    }
+
+    // Если файл открылся
+    int id;
+    char name[MAX_NAME_LEN];
+    int count = 0;
+
+    //пока fscanf возвращает 2
+    while (fscanf(file, "%d %49s", &id, name) == 2) {
+        // Проверяем, что ID поместится
+        if (id >= 0 && id < MAX_ITEMS) {
+            strcpy(item_names[id], name); //Копируем
+            count++;
+        }
+    }
+
+    // Закрываем
+    fclose(file);
+    printf("[Успех]: Каталог предметов успешно загружен из items.txt (%d предметов).\n", count);
+}
 
 int main() // главаная функция
 {
