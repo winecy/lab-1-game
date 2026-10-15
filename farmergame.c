@@ -1,6 +1,7 @@
 #include <stdio.h>
+#include <string.h>
 #define inventory_size 10
-
+#define player_name_max 32
 
 int current_day = 1;
 int current_hour = 8;
@@ -9,9 +10,13 @@ int work_time;
 int item_slot;
 int item_id;
 
+char player_name[player_name_max];
+
+
 int inventory[inventory_size] = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9
 };  
+
 
 
 
@@ -140,8 +145,26 @@ void case6_unique()
 int main() // главаная функция
 {
   while (1) 
+  {
+      printf("Введите имя вашего персонажа: ");
+      
+      fgets(player_name, player_name_max, stdin);
+      
+      player_name[strcspn(player_name, "\n")] = '\0';
+
+      if (strlen(player_name) > 0) 
+      {
+          printf("Имя установлено: %s.\n\n", player_name);
+          break;
+      }
+    
+      printf("Вы должны дать себе имя, чтобы продолжить...\n");
+  }
+
+  while (1) 
     {
-    printf("Выберите пункт:\n");
+    printf("Привет, %s ! \n", player_name);
+    printf("Выбери пункт:\n");
     printf("[0] Выход\n");
     printf("[1] Посмотреть на часы\n");
     printf("[2] Промотать время (Поработать)\n");
@@ -149,6 +172,7 @@ int main() // главаная функция
     printf("[4] Положить предмет в слот\n");
     printf("[5] Выбросить предмет\n");
     printf("[6] Уникальные находки\n");
+    
     if (scanf("%d", &userAction) != 1) 
       {
       printf("Ошибка ввода! Введите число.\n");
@@ -156,6 +180,8 @@ int main() // главаная функция
       continue;
       }
     
+
+
     switch (userAction) // действия в зависимости от выбора
     {
     
