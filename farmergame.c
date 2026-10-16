@@ -47,6 +47,7 @@ void case2_work()
   }
 }
 
+
 void case3_show_inventory() 
 {
   printf("Инвентарь:\n");
@@ -64,6 +65,7 @@ void case3_show_inventory()
     }
   }
 }
+
 
 void case4_put_item() 
 {
@@ -104,6 +106,7 @@ void case4_put_item()
   }
 }
 
+
 void case5_drop_item() 
 {
   printf("Выберите ячейку инвентаря:\n");
@@ -124,6 +127,7 @@ void case5_drop_item()
       return;
     }
 }
+
 
 void case6_unique() 
 {
@@ -152,6 +156,52 @@ void case6_unique()
       printf("Инвнтарь пуст.\n");
       }
 }
+
+
+void case7_search_item() 
+{
+  char search_name[MAX_NAME_LEN];
+  printf("Введите название предмета: ");
+  while (getchar() != '\n'); // Очистка буфера перед вводом строки
+  fgets(search_name, MAX_NAME_LEN, stdin);
+  search_name[strcspn(search_name, "\n")] = '\0'; // Удаляем перенос строки
+
+  int target_id = -1;
+  for (int i = 0; i < MAX_ITEMS; i++) 
+  {
+    if (strcmp(item_names[i], search_name) == 0) 
+    {
+      target_id = i;
+      break;
+    }
+  }
+
+  if (target_id == -1) 
+  {
+    printf("Предмет \"%s\" не найден.\n", search_name);
+    return;
+  }
+
+  // Проверяем наличие найденного ID в рюкзаке
+  int found = 0;
+  printf("Предмет \"%s\" (ID: %d) найден в слотах: ", search_name, target_id);
+  for (int i = 0; i < inventory_size; i++) 
+  {
+    if (inventory[i] == target_id) 
+    {
+      printf("%d ", i);
+      found = 1;
+    }
+  }
+
+  if (!found) 
+  {
+    printf("В рюкзаке этого нет.\n");
+  } else {
+    printf("\n");
+  }
+}
+
 
 void item_catalog() {
     //Пытаемся открыть файл 
@@ -191,9 +241,12 @@ void item_catalog() {
     printf("Каталог предметов успешно загружен(%d предметов).\n", count);
 }
 
+
 int main() // главаная функция
 {
   item_catalog();
+  
+  //имя
   while (1) 
   {
       printf("Введите имя вашего персонажа: ");
@@ -210,6 +263,7 @@ int main() // главаная функция
     
       printf("Вы должны дать себе имя, чтобы продолжить...\n");
   }
+
 
   while (1) 
     {
