@@ -1,36 +1,45 @@
-#include <stdio.h>
+// библиотеки---------------------------------------------------------------
+
+#include <stdio.h>  
 #include <string.h>
 
-#define inventory_size 10
-#define player_name_max 32
-#define MAX_ITEMS 10
-#define MAX_NAME_LEN 50
 
-int current_day = 1;
-int current_hour = 8;
-int userAction;
-int work_time;
-int item_slot;
-int item_id;
+// константы----------------------------------------------------------------
 
-char player_name[player_name_max];
-char item_names[MAX_ITEMS][MAX_NAME_LEN];
+#define inventory_size 10  // размер инвенторя
+#define player_name_max 32 // максимальная длина имени фермера(юзера)
+#define MAX_ITEMS 10       // максимальное количество предметов
+#define MAX_NAME_LEN 50    // максимальная длина названия предмета
 
 
+// переменные---------------------------------------------------------------
 
-int inventory[inventory_size] = {
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9
-};  
+int current_day = 1;    // стартовое значение дней
+int current_hour = 8;   // стартовое значение часов
+int userAction;         // выбор в меню
+int work_time;          // длительность работы
+int item_slot;          // слот предмета
+int item_id;            // айди предмета
+
+char player_name[player_name_max];         // имя
+char item_names[MAX_ITEMS][MAX_NAME_LEN];  // названия предметов
+
+
+// массивы------------------------------------------------------------------
+
+int inventory[inventory_size] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};     // инвентарь 
 
 
 
+// функции(меню)--------------------------------------------------------------
 
-void case1_time() 
+void case1_time()    // вывод времени
 {
   printf("Текущее время: %d день %d час\n", current_day, current_hour);
 }
 
-void case2_work() 
+
+void case2_work()    // работа
 {
   printf("Сколько работаем?\n");
   scanf("%d", &work_time);
@@ -43,12 +52,12 @@ void case2_work()
         current_hour = current_hour % 24;
         }
   }else{
-    printf("Такое невозможно.Введите корректное количество часов.\n");
+    printf("Такое невозможно. Введите корректное количество часов.\n");
   }
 }
 
 
-void case3_show_inventory() 
+void case3_show_inventory()    // вывод инвентаря
 {
   printf("Инвентарь:\n");
   for (int i = 0; i < inventory_size; i++) 
@@ -61,26 +70,26 @@ void case3_show_inventory()
     } 
     else 
     {
-        printf("Слот %d: [%d] - Неизвестный предмет\n", i, id);
+        printf("Слот %d: [%d] - неизвестный предмет.\n", i, id);
     }
   }
 }
 
 
-void case4_put_item() 
+void case4_put_item()    // положить предмет 
 {
   printf("Выберите ячейку инвентаря:\n");
   
   if (scanf("%d", &item_slot) != 1) 
     {
-    printf("Ошибка ввода! Введите число от 0 до 9\n");
+    printf("Ошибка ввода! Введите число от 0 до 9.\n");
     while (getchar() != '\n'); // чистка буфера
-    return; // вместо break в функции пишется return
+    return; 
     }
   
   if (item_slot > 9 || item_slot < 0) 
     {
-    printf("Неверный номер слота!Введите значение от 0 до 9\n");
+    printf("Неверный номер слота! Введите значение от 0 до 9\n");
     return;
     } else {
     
@@ -107,7 +116,7 @@ void case4_put_item()
 }
 
 
-void case5_drop_item() 
+void case5_drop_item()    // выбросить предмет 
 {
   printf("Выберите ячейку инвентаря:\n");
   
@@ -129,7 +138,7 @@ void case5_drop_item()
 }
 
 
-void case6_unique() 
+void case6_unique()    // уникальные находки 
 {
   int unique_items = 0;
   int items[10] = {0};
@@ -158,7 +167,7 @@ void case6_unique()
 }
 
 
-void case7_search_item() 
+void case7_search_item()     // поиск предмета в инвентаре по названию     
 {
   char search_name[MAX_NAME_LEN];
   printf("Введите название предмета: ");
@@ -182,7 +191,7 @@ void case7_search_item()
     return;
   }
 
-  // Проверяем наличие найденного ID в рюкзаке
+  // проверяем наличие найденного ID в рюкзаке
   int found = 0;
   printf("Предмет \"%s\" (ID: %d) найден в слотах: ", search_name, target_id);
   for (int i = 0; i < inventory_size; i++) 
@@ -204,16 +213,16 @@ void case7_search_item()
 
 
 void item_catalog() {
-    //Пытаемся открыть файл 
+    // пытаемся открыть файл 
     FILE *file = fopen("items.txt", "r");
     
-    //стандартные названия
+    // стандартные названия
     char default_names[MAX_ITEMS][MAX_NAME_LEN] = {
         "Пусто", "Дерево", "Камень", "Семена", "Картошка", 
         "Кирка", "Пшено", "Грибы", "Седло", "Морковь"
     };
 
-    //если файл не найден
+    // если файл не найден
     if (file == NULL) {
         printf("\n[Предупреждение]: Файл items.txt не найден! Загружены названия по умолчанию.\n");
         for (int i = 0; i < MAX_ITEMS; i++) {
@@ -241,15 +250,16 @@ void item_catalog() {
     printf("Каталог предметов успешно загружен(%d предметов).\n", count);
 }
 
+// главаная функция-----------------------------------------------------------------
 
-int main() // главаная функция
+int main() 
 {
   item_catalog();
   
-  //имя
-  while (1) 
+
+  while (1) // ввод имени
   {
-      printf("Введите имя вашего персонажа: ");
+      printf("Введите имя: ");
       
       fgets(player_name, player_name_max, stdin);
       
@@ -265,7 +275,7 @@ int main() // главаная функция
   }
 
 
-  while (1) 
+  while (1)    // меню
     {
     printf("Привет, %s ! \n", player_name);
     printf("Выбери пункт:\n");
@@ -289,50 +299,56 @@ int main() // главаная функция
     switch (userAction) // действия в зависимости от выбора
     {
     
-    case 0: // завершение работы проги
+    case 0:   // завершение работы проги
       {
       printf("Пока-пока!\n");
       return 0;
       break;
       }
     
-    case 1: // вывести время
+    case 1:   // вывести время
       {
-      case1_time(); // Вызываем функцию вместо кучи кода
+      case1_time(); 
       break;
       }
     
-    case 2: // поработать
+    case 2:    // поработать
       {
-      case2_work(); // Вызываем функцию вместо кучи кода
+      case2_work(); 
       break;
       }
     
-    case 3: 
+    case 3:    // вывод инвентаря
       {
       case3_show_inventory();
       break;
       }
     
-    case 4: 
+    case 4:    // положить предмет
       {
       case4_put_item();
       break;
       }
       
-    case 5:
+    case 5:    // выбросить предмет
       {
       case5_drop_item();
       break;
       }
 
-    case 6:
+    case 6:    // уникальные находки
       {
       case6_unique();
       break;
       }
 
-    default: // если ввод неправильный
+      case 7:
+      {
+      case7_search_item();
+      break;
+      }
+
+    default:    // если ввод неправильный
     {
       printf("Неверный ввод\n");
       break;
