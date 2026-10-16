@@ -211,6 +211,36 @@ void case7_search_item()     // поиск предмета в инвентар�
   }
 }
 
+void case8_save_diary() 
+{
+  FILE *file = fopen("diary.txt", "a");
+  if (file == NULL) 
+  {
+    printf("Ошибка: не удалось открыть или создать файл diary.txt!\n");
+    return;
+  }
+
+  fprintf(file, "=== Запись в дневнике ===\n");
+  fprintf(file, "Фермер: %s\n", player_name);
+  fprintf(file, "Время: День %d, Час %d:00\n", current_day, current_hour);
+  fprintf(file, "Содержимое инвентаря:\n");
+  
+  for (int i = 0; i < inventory_size; i++) 
+  {
+    int id = inventory[i];
+    if (id >= 0 && id < MAX_ITEMS) 
+    {
+      fprintf(file, "  Слот %d: %s\n", i, item_names[id]);
+    } else {
+      fprintf(file, "  Слот %d: Неизвестный предмет\n", i);
+    }
+  }
+  fprintf(file, "-------------------------\n\n");
+
+  fclose(file);
+  printf("Состояние успешно сохранено в дневник (diary.txt).\n");
+}
+
 
 void item_catalog() {
     // пытаемся открыть файл 
@@ -345,6 +375,12 @@ int main()
       case 7:
       {
       case7_search_item();
+      break;
+      }
+
+      case 8:
+      {
+      case8_save_diary();
       break;
       }
 
