@@ -241,6 +241,70 @@ void case8_save_diary()
   printf("Состояние успешно сохранено в дневник (diary.txt).\n");
 }
 
+void case9_analyze_logs() 
+{
+  FILE *in = fopen("input.txt", "r");
+  if (in == NULL) 
+  {
+    printf("Ошибка: не удалось открыть файл input.txt для чтения!\n");
+    return;
+  }
+
+  FILE *out = fopen("output.txt", "w");
+  if (out == NULL) 
+  {
+    printf("Ошибка: не удалось создать файл output.txt для записи!\n");
+    fclose(in);
+    return;
+  }
+
+  char line[256];
+  int line_number = 0;
+  int info_count = 0, warn_count = 0, error_count = 0;
+
+  printf("\n--- Обработка логов ---\n");
+
+  while (fgets(line, sizeof(line), in) != NULL) 
+  {
+    line_number++;
+    
+    // Считаем общую статистику и обрабатываем строки
+    if (strncmp(line, "[INFO]", 6) == 0) 
+    {
+      info_count++;
+    } 
+    else if (strncmp(line, "[WARN]", 6) == 0) 
+    {
+      warn_count++;
+      char *message = line + 6; // Смещаем указатель, убирая тег
+      // Вывод на экран
+      printf("[%d] Строка %d: %s", warn_count + error_count, line_number, message);
+      // Запись в файл
+      fprintf(out, "Строка %d: %s", line_number, message);
+    } 
+    else if (strncmp(line, "[ERROR]", 7) == 0) 
+    {
+      error_count++;
+      char *message = line + 7; // Смещаем указатель, убирая тег
+      // Вывод на экран
+      printf("[%d] Строка %d: %s", warn_count + error_count, line_number, message);
+      // Запись в файл
+      fprintf(out, "Строка %d: %s", line_number, message);
+    }
+  }
+
+  // Выводим статистику на экран
+  printf("\n=== ОБЩАЯ СТАТИСТИКА ЛОГОВ ===\n");
+  printf("Всего строк обработано: %d\n", line_number);
+  printf("[INFO]:  %d\n", info_count);
+  printf("[WARN]:  %d\n", warn_count);
+  printf("[ERROR]: %d\n", error_count);
+  printf("==============================\n");
+
+  fclose(in);
+  fclose(out);
+  printf("Результаты фильтрации успешно сохранены в файл output.txt.\n");
+}
 
 void item_catalog() {
     // пытаемся открыть файл 
@@ -372,15 +436,21 @@ int main()
       break;
       }
 
-      case 7:
+    case 7:    // поиск предмета
       {
       case7_search_item();
       break;
       }
 
-      case 8:
+    case 8:    // записи в дневнике
       {
       case8_save_diary();
+      break;
+      }
+      
+    case 9:    // анализ логов
+      {
+      case9_analyze_logs();
       break;
       }
 
