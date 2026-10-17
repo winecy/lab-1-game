@@ -9,8 +9,13 @@
 #define inventory_size 10  // размер инвенторя
 #define player_name_max 32 // максимальная длина имени фермера(юзера)
 #define MAX_ITEMS 10       // максимальное количество предметов
-#define MAX_NAME_LEN 50    // максимальная длина названия предмета
+#define MAX_NAME_LEN 32    // максимальная длина названия предмета
+#define hours_per_day 24
 
+#define ITEMS_FILE   "items.txt"
+#define DIARY_FILE   "diary.txt"
+#define INPUT_FILE   "input.txt"
+#define OUTPUT_FILE  "output.txt"
 
 // переменные---------------------------------------------------------------
 
@@ -48,8 +53,8 @@ void case2_work()    // работа
     printf("Работаем...\n");
     if (current_hour >= 24) 
         {
-        current_day += current_hour / 24;
-        current_hour = current_hour % 24;
+        current_day += current_hour / hours_per_day;
+        current_hour = current_hour % hours_per_day;
         }
   }else{
     printf("Такое невозможно. Введите корректное количество часов.\n");
@@ -380,7 +385,10 @@ int main()
     printf("[4] Положить предмет в слот\n");
     printf("[5] Выбросить предмет\n");
     printf("[6] Уникальные находки\n");
-    
+    printf("[7] Поиск предмета по названию\n");
+    printf("[8] Запись в дневник\n");
+    printf("[9] Анализ логов\n");
+
     if (scanf("%d", &userAction) != 1) 
       {
       printf("Ошибка ввода! Введите число.\n");
