@@ -549,6 +549,39 @@ void print_map() {
     }
 }
 
+int move_hero(int dx, int dy) {
+    int new_x = hero_x + dx;
+    int new_y = hero_y + dy;
+
+    int out_x = (new_x < 0 || new_x >= map_width);
+    int out_y = (new_y < 0 || new_y >= map_height);
+
+    if (out_x || out_y) {
+        if (location_type == LOC_FOREST) return 2; /* выход за край — новый лес */
+        return 0;                                   /* из пещеры нельзя выйти */
+    }
+
+    char c = map[new_y][new_x];
+    if (c == CELL_TREE || c == CELL_ROCK || c == CELL_WALL) return 0;
+
+    /* если под героем БЫЛ костёр — возвращаем его, а не '.' */
+    if (location_type == LOC_FOREST &&
+        hero_x == campfire_x && hero_y == campfire_y) {
+        map[hero_y][hero_x] = CELL_CAMP;
+    } else {
+        map[hero_y][hero_x] = CELL_FLOOR;
+    }
+
+    hero_x = new_x;
+    hero_y = new_y;
+
+    if (c == CELL_CAVE) return 4;     /* наступили на вход/выход */
+    map[hero_y][hero_x] = CELL_HERO;
+    if (c == CELL_CAMP) return 3;     /* встали на костёр */
+    return 1;
+}
+
+
 // главаная функция-----------------------------------------------------------------
 
 int main() 
