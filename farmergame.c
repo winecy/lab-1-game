@@ -336,13 +336,13 @@ void item_catalog() {
     int count = 0;
 
     //пока fscanf возвращает 2
-    while (fscanf(file, "%d %49s", &id, name) == 2) {
-        // Проверяем, что ID поместится
-        if (id >= 0 && id < MAX_ITEMS) {
-            strcpy(item_names[id], name); //Копируем
-            count++;
-        }
+    while (fscanf(file, "%d %31s", &id, name) == 2) {
+    if (id >= 0 && id < MAX_ITEMS) {
+        strncpy(item_names[id], name, MAX_NAME_LEN - 1);
+        item_names[id][MAX_NAME_LEN - 1] = '\0';
+        count++;
     }
+}
 
     // Закрываем
     fclose(file);
