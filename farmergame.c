@@ -378,6 +378,38 @@ void item_catalog() {
     printf("Каталог предметов успешно загружен(%d предметов).\n", count);
 }
 
+void create_map(int h, int w) {
+    map_height = h;
+    map_width  = w;
+
+    map = malloc(h * sizeof(char *));        /* массив указателей на строки */
+    if (map == NULL) return;
+
+    for (int i = 0; i < h; i++) {
+        map[i] = malloc(w * sizeof(char));   /* каждая строка отдельно */
+        if (map[i] == NULL) {
+            /* не хватило памяти — освобождаем уже выделенное */
+            for (int j = 0; j < i; j++) free(map[j]);
+            free(map);
+            map = NULL;
+            return;
+        }
+    }
+}
+
+/* Освобождает память карты: сначала строки, потом массив указателей. */
+void free_map() {
+    if (map == NULL) return;
+    for (int i = 0; i < map_height; i++) {
+        free(map[i]);
+    }
+    free(map);
+    map = NULL;
+    map_width  = 0;
+    map_height = 0;
+}
+
+
 // главаная функция-----------------------------------------------------------------
 
 int main() 
@@ -417,7 +449,7 @@ int main()
     printf("[7] Поиск предмета по названию\n");
     printf("[8] Запись в дневник\n");
     printf("[9] Анализ логов\n");
-
+    printf("[10] Отправиться в приключение\n");
     
     if (scanf("%d", &userAction) != 1) 
     {
