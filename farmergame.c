@@ -2,10 +2,9 @@
 
 #include <stdio.h>  
 #include <string.h>
-#include <stdlib.h>   /* malloc, free, rand, srand */
-#include <time.h>     /* time */
-#include <ctype.h>    /* toupper */
-
+#include <stdlib.h>
+#include <time.h>
+#include <ctype.h>
 
 // константы----------------------------------------------------------------
 
@@ -188,7 +187,6 @@ void case6_unique()    // уникальные находки
     {
     if (items[id] > 0) 
       {
-      // Убрано упоминание удаленного массива inventory_name
       printf("Предмет ID %d: %d штук\n", id, items[id]);
       unique_items = unique_items + 1;
       }
@@ -581,13 +579,108 @@ int move_hero(int dx, int dy) {
     return 1;
 }
 
+void case10_adventure() {
+    distance_from_home = 0;
+    generate_forest();
+
+    int running = 1;
+    while (running) {
+        print_map();
+
+        printf("Ход > ");
+        char cmd;
+        if (scanf(" %c", &cmd) != 1) break;   /* Ctrl+D → выходим */
+        int ch;
+        while ((ch = getchar()) != '\n' && ch != EOF) { }
+        cmd = (char)toupper((unsigned char)cmd);
+
+        /* Q — домой (только в лесу и только на костре) */
+        if (cmd == 'Q') {
+            if (location_type == LOC_FOREST &&
+                hero_x == campfire_x && hero_y == campfire_y) {
+                printf("Вы вернулись домой! Пройдено лесов: %d\n", distance_from_home);
+                running = 0;
+            } else if (location_type == LOC_FOREST) {
+                printf("Домой можно только стоя на костре ^.\n");
+            } else {
+                printf("Из пещеры нет прямого пути домой. Найдите O.\n");
+            }
+            continue;
+        }
+
+        int dx = 0, dy = 0;
+        if      (cmd == 'W') dy = -1;
+        else if (cmd == 'S') dy =  1;
+        else if (cmd == 'A') dx = -1;
+        else if (cmd == 'D') dx =  1;
+        else { printf("Неизвестная команда.\n"); continue; }
+
+        int result = move_hero(dx, dy);
+
+        if (result == 0) {
+            printf("Туда нельзя.\n");
+        }
+        else if (result == 2) {
+            /* выход за край леса → новая карта, счётчик +1 */
+            int old_x = hero_x, old_y = hero_y;
+            free_map();
+            distance_from_home++;
+            generate_forest();
+
+            /* переставляем героя к противоположному краю новой карты */
+            int cx = hero_x, cy = hero_y;
+            map[cy][cx] = CELL_FLOOR;
+
+            int go_x = old_x, go_y = old_y;
+            if (dy == -1) go_y = map_height - 1;  /* ушёл вверх — пришёл снизу */
+            if (dy ==  1) go_y = 0;
+            if (dx == -1) go_x = map_width  - 1;
+            if (dx ==  1) go_x = 0;
+
+            if (go_x < 0) go_x = 0;
+            if (go_x >= map_width)  go_x = map_width - 1;
+            if (go_y < 0) go_y = 0;
+            if (go_y >= map_height) go_y = map_height - 1;
+
+            if (map[go_y][go_x] != CELL_FLOOR) {  /* на краю препятствие */
+                go_x = cx;
+                go_y = cy;
+                map[go_y][go_x] = CELL_FLOOR;
+            }
+            hero_x = go_x;
+            hero_y = go_y;
+            map[hero_y][hero_x] = CELL_HERO;
+
+            printf("Вы ушли глубже в лес. Расстояние: %d\n", distance_from_home);
+        }
+        else if (result == 3) {
+            printf("Вы у костра. Нажмите Q, чтобы вернуться домой.\n");
+        }
+        else if (result == 4) {
+            /* смена локации: лес ↔ пещера */
+            int was_forest = (location_type == LOC_FOREST);
+            free_map();
+            if (was_forest) {
+                generate_cave();
+                printf("Вы вошли в пещеру...\n");
+            } else {
+                distance_from_home++;
+                generate_forest();
+                printf("Вы вышли из пещеры в новый лес. Расстояние: %d\n",
+                       distance_from_home);
+            }
+        }
+    }
+
+    free_map();   /* ОБЯЗАТЕЛЬНО освобождаем память */
+}
 
 // главаная функция-----------------------------------------------------------------
 
 int main() 
 {
+  srand((unsigned)time(NULL));
   item_catalog();
-  
 
   while (1) // ввод имени
   {
@@ -629,7 +722,7 @@ int main()
       printf("Ошибка ввода! Введите число.\n");
     int ch;
     while ((ch = getchar()) != '\n' && ch != EOF) { }
-    if (ch == EOF) break;   // ← НОВОЕ: Ctrl+D не вешает программу
+    if (ch == EOF) break;
     continue;
     
     }
@@ -697,6 +790,12 @@ int main()
     case 9:    // анализ логов
       {
       case9_analyze_logs();
+      break;
+      }
+
+    case 10:   // приключение
+      {
+      case10_adventure();
       break;
       }
 
