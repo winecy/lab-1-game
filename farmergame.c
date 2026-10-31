@@ -477,6 +477,77 @@ void generate_forest() {
     }
 }
 
+void generate_cave() {
+    int h = MIN_CAVE_SIZE + rand() % (MAX_CAVE_SIZE - MIN_CAVE_SIZE + 1);
+    int w = MIN_CAVE_SIZE + rand() % (MAX_CAVE_SIZE - MIN_CAVE_SIZE + 1);
+
+    create_map(h, w);
+    location_type = LOC_CAVE;
+
+    /* стены по краям + случайные камни внутри */
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            if (x == 0 || y == 0 || x == w - 1 || y == h - 1)
+                map[y][x] = CELL_WALL;
+            else if (rand() % 100 < 25)
+                map[y][x] = CELL_ROCK;
+            else
+                map[y][x] = CELL_FLOOR;
+        }
+    }
+
+    /* гарантируем минимум 2 свободные клетки (под героя и выход) */
+    int free_count = 0;
+    for (int y = 1; y < h - 1; y++)
+        for (int x = 1; x < w - 1; x++)
+            if (map[y][x] == CELL_FLOOR) free_count++;
+    for (int y = 1; y < h - 1 && free_count < 2; y++)
+        for (int x = 1; x < w - 1 && free_count < 2; x++)
+            if (map[y][x] != CELL_FLOOR) {
+                map[y][x] = CELL_FLOOR;
+                free_count++;
+            }
+
+    /* 1. Герой — на первую свободную */
+    int hx = -1, hy = -1;
+    for (int y = 1; y < h - 1 && hx == -1; y++)
+        for (int x = 1; x < w - 1; x++)
+            if (map[y][x] == CELL_FLOOR) { hx = x; hy = y; break; }
+    map[hy][hx] = CELL_HERO;
+    hero_x = hx;
+    hero_y = hy;
+
+    /* 2. Выход — на самую дальнюю от героя свободную клетку */
+    int best = -1, ox = -1, oy = -1;
+    for (int y = 1; y < h - 1; y++)
+        for (int x = 1; x < w - 1; x++)
+            if (map[y][x] == CELL_FLOOR) {
+                int d = (x - hx) * (x - hx) + (y - hy) * (y - hy);
+                if (d > best) { best = d; ox = x; oy = y; }
+            }
+    /* страховка: если вдруг не нашли — берём любую, кроме позиции героя */
+    if (ox == -1) {
+        for (int y = 1; y < h - 1 && ox == -1; y++)
+            for (int x = 1; x < w - 1; x++)
+                if (!(x == hx && y == hy)) {
+                    map[y][x] = CELL_FLOOR;
+                    ox = x;
+                    oy = y;
+                    break;
+                }
+    }
+    map[oy][ox] = CELL_CAVE;
+}
+
+/* Рисует карту в консоль. */
+void print_map() {
+    printf("\n");
+    for (int y = 0; y < map_height; y++) {
+        for (int x = 0; x < map_width; x++)
+            printf("%c", map[y][x]);
+        printf("\n");
+    }
+}
 
 // главаная функция-----------------------------------------------------------------
 
