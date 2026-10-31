@@ -2,6 +2,9 @@
 
 #include <stdio.h>  
 #include <string.h>
+#include <stdlib.h>   /* malloc, free, rand, srand */
+#include <time.h>     /* time */
+#include <ctype.h>    /* toupper */
 
 
 // константы----------------------------------------------------------------
@@ -17,6 +20,22 @@
 #define INPUT_FILE   "input.txt"
 #define OUTPUT_FILE  "output.txt"
 
+#define MIN_FOREST_SIZE  8
+#define MAX_FOREST_SIZE  20
+#define MIN_CAVE_SIZE    5
+#define MAX_CAVE_SIZE    8
+
+#define LOC_FOREST  0
+#define LOC_CAVE    1
+
+#define CELL_FLOOR '.'
+#define CELL_WALL  '#'
+#define CELL_TREE  'T'
+#define CELL_ROCK  'R'
+#define CELL_HERO  '@'
+#define CELL_CAMP  '^'
+#define CELL_CAVE  'O'
+
 // переменные---------------------------------------------------------------
 
 int current_day = 1;    // стартовое значение дней
@@ -26,6 +45,16 @@ int work_time;          // длительность работы
 int item_slot;          // слот предмета
 int item_id;            // айди предмета
 
+int map_width  = 0;
+int map_height = 0;
+int hero_x = 0;
+int hero_y = 0;
+int location_type = LOC_FOREST;
+int distance_from_home = 0;
+int campfire_x = -1;
+int campfire_y = -1;
+
+char **map = NULL;
 char player_name[player_name_max];         // имя
 char item_names[MAX_ITEMS][MAX_NAME_LEN];  // названия предметов
 
@@ -375,7 +404,7 @@ int main()
 
 
   while (1)    // меню
-    {
+  {
     printf("Привет, %s ! \n", player_name);
     printf("Выбери пункт:\n");
     printf("[0] Выход\n");
@@ -389,12 +418,17 @@ int main()
     printf("[8] Запись в дневник\n");
     printf("[9] Анализ логов\n");
 
+    
     if (scanf("%d", &userAction) != 1) 
-      {
+    {
+    
       printf("Ошибка ввода! Введите число.\n");
-      while (getchar() != '\n'); // чистка буфера
-      continue;
-      }
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF) { }
+    if (ch == EOF) break;   // ← НОВОЕ: Ctrl+D не вешает программу
+    continue;
+    
+    }
     
 
 
