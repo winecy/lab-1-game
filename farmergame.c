@@ -409,6 +409,74 @@ void free_map() {
     map_height = 0;
 }
 
+void generate_forest() {
+    int h = MIN_FOREST_SIZE + rand() % (MAX_FOREST_SIZE - MIN_FOREST_SIZE + 1);
+    int w = MIN_FOREST_SIZE + rand() % (MAX_FOREST_SIZE - MIN_FOREST_SIZE + 1);
+
+    create_map(h, w);
+    location_type = LOC_FOREST;
+
+    /* 1. Заполняем препятствиями — БЕЗ границ из стен */
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            if (rand() % 100 < 20)
+                map[y][x] = (rand() % 2 == 0) ? CELL_TREE : CELL_ROCK;
+            else
+                map[y][x] = CELL_FLOOR;
+        }
+    }
+
+    /* 2. Ставим героя в центр (или на первую свободную клетку) */
+    int hx = w / 2, hy = h / 2;
+    if (map[hy][hx] != CELL_FLOOR) {
+        int found = 0;
+        for (int y = 0; y < h && !found; y++)
+            for (int x = 0; x < w && !found; x++)
+                if (map[y][x] == CELL_FLOOR) { hx = x; hy = y; found = 1; }
+        if (!found) map[hy][hx] = CELL_FLOOR;
+    }
+    map[hy][hx] = CELL_HERO;
+    hero_x = hx;
+    hero_y = hy;
+
+    /* 3. Один костёр на карту — только на оставшийся FLOOR */
+    campfire_x = -1;
+    campfire_y = -1;
+    for (int attempt = 0; attempt < 200 && campfire_x == -1; attempt++) {
+        int cx = rand() % w;
+        int cy = rand() % h;
+        if (map[cy][cx] == CELL_FLOOR) {
+            map[cy][cx] = CELL_CAMP;
+            campfire_x = cx;
+            campfire_y = cy;
+        }
+    }
+    /* страховка: если за 200 попыток не нашли — берём первую свободную */
+    if (campfire_x == -1) {
+        for (int y = 0; y < h && campfire_x == -1; y++)
+            for (int x = 0; x < w; x++)
+                if (map[y][x] == CELL_FLOOR) {
+                    map[y][x] = CELL_CAMP;
+                    campfire_x = x;
+                    campfire_y = y;
+                    break;
+                }
+    }
+
+    /* 4. 1–2 входа в пещеры — тоже только на FLOOR */
+    int caves = 1 + rand() % 2;
+    for (int i = 0; i < caves; i++) {
+        for (int attempt = 0; attempt < 200; attempt++) {
+            int ox = rand() % w;
+            int oy = rand() % h;
+            if (map[oy][ox] == CELL_FLOOR) {
+                map[oy][ox] = CELL_CAVE;
+                break;
+            }
+        }
+    }
+}
+
 
 // главаная функция-----------------------------------------------------------------
 
