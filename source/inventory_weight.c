@@ -4,25 +4,31 @@
 #include "inventory_weight.h"
 #include "utils.h"
 
-// Таблица весов: РОВНО MAX_ITEMS элементов (у тебя 10 → индексы 0..9)
+// таблица весов предметов (индекс = id)------------------------------------
+
 static const int weights[MAX_ITEMS] = {
-    /* 0 */  0,   // пустой слот
-    /* 1 */  5,   // факел
-    /* 2 */  2,   // верёвка
-    /* 3 */ 15,   // доспех
-    /* 4 */  1,   // свиток
-    /* 5 */ 25,   // тяжёлый камень
-    /* 6 */  3,   // зелье
-    /* 7 */ 40,   // булыжник
-    /* 8 */  2,   // еда
-    /* 9 */ 30    // слиток
+    /* 0 Пусто     */  0,
+    /* 1 Дерево    */  3,
+    /* 2 Камень    */  8,
+    /* 3 Семена    */  1,
+    /* 4 Картошка  */  1,
+    /* 5 Кирка     */ 10,
+    /* 6 Пшено     */  2,
+    /* 7 Грибы     */  1,
+    /* 8 Седло     */ 15,
+    /* 9 Морковь   */  1
 };
+
+// вес предмета по id-------------------------------------------------------
 
 int inventory_weight(int item_id)
 {
     if (item_id < 0 || item_id >= MAX_ITEMS) return 0;
     return weights[item_id];
 }
+
+// инициализация рюкзака----------------------------------------------------
+
 void backpack_init(struct Backpack *bp)
 {
     if (bp == NULL) return;
@@ -35,7 +41,7 @@ void backpack_init(struct Backpack *bp)
     bp->state          = LOAD_LIGHT;
 }
 
-// ----- Статус загрузки ----------------------------------------------------
+// статус загрузки----------------------------------------------------------
 
 enum LoadState backpack_get_state(int weight, int capacity)
 {
@@ -56,7 +62,7 @@ const char *load_state_name(enum LoadState s)
     return "?";
 }
 
-// ----- Пересчёт веса и статуса -------------------------------------------
+// пересчёт веса и статуса--------------------------------------------------
 
 void backpack_recalc(struct Backpack *bp)
 {
@@ -67,7 +73,7 @@ void backpack_recalc(struct Backpack *bp)
     bp->state = backpack_get_state(bp->current_weight, bp->max_capacity);
 }
 
-// ----- Добавление / удаление ---------------------------------------------
+// добавление предмета------------------------------------------------------
 
 int backpack_add(struct Backpack *bp, int item_id)
 {
@@ -78,6 +84,8 @@ int backpack_add(struct Backpack *bp, int item_id)
     backpack_recalc(bp);
     return 0;
 }
+
+// удаление предмета по индексу слота---------------------------------------
 
 int backpack_remove(struct Backpack *bp, int slot)
 {
@@ -90,7 +98,7 @@ int backpack_remove(struct Backpack *bp, int slot)
     return 0;
 }
 
-// ----- Показ --------------------------------------------------------------
+// показ рюкзака------------------------------------------------------------
 
 void backpack_show(const struct Backpack *bp, char item_names[][MAX_NAME_LEN])
 {
@@ -107,23 +115,22 @@ void backpack_show(const struct Backpack *bp, char item_names[][MAX_NAME_LEN])
     }
 }
 
-// ----- Покупка подсумка ---------------------------------------------------
+// покупка подсумка (+10 ёмкости за 50 золота)------------------------------
 
-void backpack_buy_pouch(struct Backpack *bp, struct Player *player)
+void backpack_buy_pouch(struct Backpack *bp, int *gold)
 {
-    if (bp == NULL || player == NULL) { printf("Нет персонажа!\n"); return; }
-    int gold = player_gold(player);
-    if (gold < POUCH_COST) {
-        printf("Не хватает золота (нужно %d, есть %d).\n", POUCH_COST, gold);
+    if (bp == NULL || gold == NULL) { printf("Нет персонажа!\n"); return; }
+    if (*gold < POUCH_COST) {
+        printf("Не хватает золота (нужно %d, есть %d).\n", POUCH_COST, *gold);
         return;
     }
-    player_add_gold(player, -POUCH_COST);
+    *gold -= POUCH_COST;
     bp->max_capacity += POUCH_CAPACITY;
     backpack_recalc(bp);
     printf("Куплен подсумок. Грузоподъёмность: %d\n", bp->max_capacity);
 }
 
-// ----- Стоимость шага по выносливости ------------------------------------
+// стоимость шага по выносливости (3 при Перегрузе, иначе 1)---------------
 
 int step_stamina_cost(const struct Backpack *bp)
 {
