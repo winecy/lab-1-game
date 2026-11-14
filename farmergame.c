@@ -1,41 +1,21 @@
 // библиотеки---------------------------------------------------------------
 
-#include <stdio.h>  
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
 #include <ctype.h>
 
+#include "utils.h"
+#include "player.h"
+#include "map.h"
+
 // константы----------------------------------------------------------------
-
-#define inventory_size 10  // размер инвенторя
-#define player_name_max 32 // максимальная длина имени фермера(юзера)
-#define MAX_ITEMS 10       // максимальное количество предметов
-#define MAX_NAME_LEN 32    // максимальная длина названия предмета
-#define hours_per_day 24
-
-#define ITEMS_FILE   "items.txt"
-#define DIARY_FILE   "diary.txt"
-#define INPUT_FILE   "input.txt"
-#define OUTPUT_FILE  "output.txt"
-
-#define MIN_FOREST_SIZE  8
-#define MAX_FOREST_SIZE  20
-#define MIN_CAVE_SIZE    5
-#define MAX_CAVE_SIZE    8
-
-#define LOC_FOREST  0
-#define LOC_CAVE    1
-
-#define CELL_FLOOR '-'
-#define CELL_WALL  '#'
-#define CELL_TREE  'T'
-#define CELL_ROCK  'R'
-#define CELL_HERO  '@'
-#define CELL_CAMP  '^'
-#define CELL_CAVE  'O'
+// (все #define переехали в utils.h / player.h / map.h)
 
 // переменные---------------------------------------------------------------
+// ВНИМАНИЕ: глобальные переменные временны.
+// В коммитах 2–4 они переедут в struct Player / struct Map / локальные в main.
 
 int current_day = 1;    // стартовое значение дней
 int current_hour = 8;   // стартовое значение часов
@@ -44,24 +24,23 @@ int work_time;          // длительность работы
 int item_slot;          // слот предмета
 int item_id;            // айди предмета
 
-int map_width  = 0;
-int map_height = 0;
-int hero_x = 0;
-int hero_y = 0;
-int location_type = LOC_FOREST;
-int distance_from_home = 0;
-int campfire_x = -1;
-int campfire_y = -1;
+int map_width  = 0;              //макс ширина карты
+int map_height = 0;              //макс высота карты
+int hero_x = 0;                  //координата игрока x
+int hero_y = 0;                  //координата игрока y
+int location_type = LOC_FOREST;  //
+int distance_from_home = 0;      //начальное расстояние от дома
+int campfire_x = -1;             //
+int campfire_y = -1;             //
 
 char **map = NULL;
-char player_name[player_name_max];         // имя
+char player_name[PLAYER_NAME_MAX];         // имя
 char item_names[MAX_ITEMS][MAX_NAME_LEN];  // названия предметов
-char cell_under_hero = CELL_FLOOR;
 
 
 // массивы------------------------------------------------------------------
 
-int inventory[inventory_size] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};     // инвентарь 
+int inventory[INVENTORY_SIZE] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};     // инвентарь
 
 
 
@@ -415,26 +394,22 @@ void generate_forest() {
     create_map(h, w);
     location_type = LOC_FOREST;
 
-    /* 1. Заполняем: по краю — стены из деревьев, внутри — препятствия */
+    /* 1. Заполняем препятствиями — БЕЗ границ из стен */
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
-            if (x == 0 || y == 0 || x == w - 1 || y == h - 1) {
-                /* граница леса — непроходимые деревья */
-                map[y][x] = CELL_TREE;
-            } else if (rand() % 100 < 20) {
+            if (rand() % 100 < 20)
                 map[y][x] = (rand() % 2 == 0) ? CELL_TREE : CELL_ROCK;
-            } else {
+            else
                 map[y][x] = CELL_FLOOR;
-            }
         }
     }
 
-    /* 2. Ставим героя в центр (или на первую свободную внутреннюю клетку) */
+    /* 2. Ставим героя в центр (или на первую свободную клетку) */
     int hx = w / 2, hy = h / 2;
     if (map[hy][hx] != CELL_FLOOR) {
         int found = 0;
-        for (int y = 1; y < h - 1 && !found; y++)
-            for (int x = 1; x < w - 1 && !found; x++)
+        for (int y = 0; y < h && !found; y++)
+            for (int x = 0; x < w && !found; x++)
                 if (map[y][x] == CELL_FLOOR) { hx = x; hy = y; found = 1; }
         if (!found) map[hy][hx] = CELL_FLOOR;
     }
@@ -442,12 +417,12 @@ void generate_forest() {
     hero_x = hx;
     hero_y = hy;
 
-    /* 3. Один костёр на карту — только на FLOOR (внутри) */
+    /* 3. Один костёр на карту — только на оставшийся FLOOR */
     campfire_x = -1;
     campfire_y = -1;
     for (int attempt = 0; attempt < 200 && campfire_x == -1; attempt++) {
-        int cx = 1 + rand() % (w - 2);
-        int cy = 1 + rand() % (h - 2);
+        int cx = rand() % w;
+        int cy = rand() % h;
         if (map[cy][cx] == CELL_FLOOR) {
             map[cy][cx] = CELL_CAMP;
             campfire_x = cx;
@@ -456,8 +431,8 @@ void generate_forest() {
     }
     /* страховка: если за 200 попыток не нашли — берём первую свободную */
     if (campfire_x == -1) {
-        for (int y = 1; y < h - 1 && campfire_x == -1; y++)
-            for (int x = 1; x < w - 1; x++)
+        for (int y = 0; y < h && campfire_x == -1; y++)
+            for (int x = 0; x < w; x++)
                 if (map[y][x] == CELL_FLOOR) {
                     map[y][x] = CELL_CAMP;
                     campfire_x = x;
@@ -466,56 +441,18 @@ void generate_forest() {
                 }
     }
 
-    /* 4. 1–2 входа в пещеры — В СТЕНЕ ИЗ ДЕРЕВЬЕВ (на границе леса) */
+    /* 4. 1–2 входа в пещеры — тоже только на FLOOR */
     int caves = 1 + rand() % 2;
-    int placed = 0;
-
-    int wall_x[4 * MAX_FOREST_SIZE];
-    int wall_y[4 * MAX_FOREST_SIZE];
-    int wall_count = 0;
-
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            int is_border = (x == 0 || y == 0 || x == w - 1 || y == h - 1);
-            int is_corner = ((x == 0 || x == w - 1) && (y == 0 || y == h - 1));
-            if (is_border && !is_corner && map[y][x] == CELL_TREE) {
-                wall_x[wall_count] = x;
-                wall_y[wall_count] = y;
-                wall_count++;
+    for (int i = 0; i < caves; i++) {
+        for (int attempt = 0; attempt < 200; attempt++) {
+            int ox = rand() % w;
+            int oy = rand() % h;
+            if (map[oy][ox] == CELL_FLOOR) {
+                map[oy][ox] = CELL_CAVE;
+                break;
             }
         }
     }
-
-    /* Ставим пещеры в случайные клетки стены + расчищаем подход */
-    while (placed < caves && wall_count > 0) {
-        int idx = rand() % wall_count;
-        int ox = wall_x[idx];
-        int oy = wall_y[idx];
-
-        /* определяем внутреннюю соседнюю клетку (перед входом) */
-        int in_x = ox, in_y = oy;
-        if (ox == 0)      in_x = 1;
-        if (ox == w - 1)  in_x = w - 2;
-        if (oy == 0)      in_y = 1;
-        if (oy == h - 1)  in_y = h - 2;
-
-        /* если перед входом препятствие — расчищаем, чтобы можно было подойти */
-        if (map[in_y][in_x] == CELL_TREE || map[in_y][in_x] == CELL_ROCK) {
-            map[in_y][in_x] = CELL_FLOOR;
-        }
-
-        if (map[oy][ox] == CELL_TREE) {
-            map[oy][ox] = CELL_CAVE;
-            placed++;
-        }
-    
-        wall_x[idx] = wall_x[wall_count - 1];
-        wall_y[idx] = wall_y[wall_count - 1];
-        wall_count--;
-    }
-
-    
-    cell_under_hero = CELL_FLOOR;
 }
 
 void generate_cave() {
@@ -578,9 +515,6 @@ void generate_cave() {
                 }
     }
     map[oy][ox] = CELL_CAVE;
-
-    /* сброс клетки под героем для новой карты */
-    cell_under_hero = CELL_FLOOR;
 }
 
 /* Рисует карту в консоль. */
@@ -606,40 +540,27 @@ int move_hero(int dx, int dy) {
     }
 
     char c = map[new_y][new_x];
-
-    /* === ЯВНАЯ ПРОВЕРКА: в пещеру входить МОЖНО === */
-    if (c == CELL_CAVE) {
-        /* возвращаем клетку, на которой стоял герой */
-        map[hero_y][hero_x] = cell_under_hero;
-        /* запоминаем, что под героем теперь вход в пещеру */
-        cell_under_hero = c;
-        hero_x = new_x;
-        hero_y = new_y;
-        map[hero_y][hero_x] = CELL_HERO;
-        return 4;   /* сигнал: смена локации */
-    }
-
     if (c == CELL_TREE || c == CELL_ROCK || c == CELL_WALL) return 0;
 
-    /* === ВОЗВРАЩАЕМ КЛЕТКУ, НА КОТОРОЙ СТОЯЛ ГЕРОЙ === */
-    map[hero_y][hero_x] = cell_under_hero;
-
-    /* === ЗАПОМИНАЕМ, ЧТО БЫЛО НА НОВОЙ КЛЕТКЕ === */
-    cell_under_hero = c;
+    /* если под героем БЫЛ костёр — возвращаем его, а не '.' */
+    if (location_type == LOC_FOREST &&
+        hero_x == campfire_x && hero_y == campfire_y) {
+        map[hero_y][hero_x] = CELL_CAMP;
+    } else {
+        map[hero_y][hero_x] = CELL_FLOOR;
+    }
 
     hero_x = new_x;
     hero_y = new_y;
 
-    /* Ставим героя поверх (не затирая запомненное) */
+    if (c == CELL_CAVE) return 4;     /* наступили на вход/выход */
     map[hero_y][hero_x] = CELL_HERO;
-
     if (c == CELL_CAMP) return 3;     /* встали на костёр */
     return 1;
 }
 
 void case10_adventure() {
     distance_from_home = 0;
-    cell_under_hero = CELL_FLOOR;   /* сброс */
     generate_forest();
 
     int running = 1;
@@ -684,7 +605,6 @@ void case10_adventure() {
             int old_x = hero_x, old_y = hero_y;
             free_map();
             distance_from_home++;
-            cell_under_hero = CELL_FLOOR;   /* сброс */
             generate_forest();
 
             /* переставляем героя к противоположному краю новой карты */
@@ -711,7 +631,7 @@ void case10_adventure() {
             hero_y = go_y;
             map[hero_y][hero_x] = CELL_HERO;
 
-            printf("Вы ушли глубже в лес.\n", distance_from_home);
+            printf("Вы ушли глубже в лес. Расстояние: %d\n", distance_from_home);
         }
         else if (result == 3) {
             printf("Вы у костра. Нажмите Q, чтобы вернуться домой.\n");
@@ -720,14 +640,13 @@ void case10_adventure() {
             /* смена локации: лес ↔ пещера */
             int was_forest = (location_type == LOC_FOREST);
             free_map();
-            cell_under_hero = CELL_FLOOR;   /* сброс при смене локации */
             if (was_forest) {
                 generate_cave();
                 printf("Вы вошли в пещеру...\n");
             } else {
                 distance_from_home++;
                 generate_forest();
-                printf("Вы вышли из пещеры в новый лес. \n",
+                printf("Вы вышли из пещеры в новый лес. Расстояние: %d\n",
                        distance_from_home);
             }
         }
@@ -747,7 +666,7 @@ int main()
   {
       printf("Введите имя: ");
       
-      fgets(player_name, player_name_max, stdin);
+      fgets(player_name, PLAYER_NAME_MAX, stdin);
       
       player_name[strcspn(player_name, "\n")] = '\0';
 
