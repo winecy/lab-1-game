@@ -48,36 +48,19 @@ static void time_menu(int *day, int *hour, struct Player *player)
         printf("Текущее время: день %d, час %d:00\n", *day, *hour);
         break;
 
-   case TIME_WAIT: {
-    int wait = read_int_safe("Сколько часов ждать (1..24): ", 1, HOURS_PER_DAY);
-    
-    int temp_hour = *hour;
-    int blocked = 0; // Флаг, что мы упёрлись в границу
-
-    for (int i = 0; i < wait; i++) {
-        // Если мы СЕЙЧАС стоим на NIGHT_HOUR (02:00) и пытаемся ждать дальше — блок!
-        if (temp_hour == NIGHT_HOUR) {
-            blocked = 1;
-            break;
+    case TIME_WAIT: {
+        int wait = read_int_safe("Сколько часов ждать (1..24): ", 1, HOURS_PER_DAY);
+        int target = *hour + wait;
+        if (*hour < NIGHT_HOUR && target > NIGHT_HOUR)
+        {
+            printf("Нельзя пройти границу 02:00 без сна!\n");
+            return;
         }
-        temp_hour = (temp_hour + 1) % HOURS_PER_DAY;
+        *hour += wait;
+        while (*hour >= HOURS_PER_DAY) { *hour -= HOURS_PER_DAY; (*day)++; }
+        printf("Время: день %d, час %d:00\n", *day, *hour);
+        break;
     }
-
-    if (blocked) {
-        printf("Нельзя пройти границу 02:00 без сна!\n");
-        break; // Если это void-функция и нужно выйти из неё — верните return
-    }
-
-    *hour += wait;
-    while (*hour >= HOURS_PER_DAY) { 
-        *hour -= HOURS_PER_DAY; 
-        (*day)++; 
-    }
-    printf("Время: день %d, час %d:00\n", *day, *hour);
-    break;
-}
-
-
 
     case TIME_SLEEP:
         if (!player) { printf("Сначала создайте персонажа!\n"); return; }
@@ -168,6 +151,7 @@ int main(void)
                     "Удалить текущего персонажа? (1-да, 0-нет): ", 0, 1);
                 if (!confirm) break;
                 free_player(player);
+                player = NULL;
             }
             player = create_player(item_names);
             break;
