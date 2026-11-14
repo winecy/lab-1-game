@@ -105,7 +105,7 @@ static void backpack_menu(struct Player *player,
 
     switch (sub) {
     case BP_SHOW: backpack_show(&player->backpack, item_names); break;
-    case BP_BUY:  backpack_buy_pouch(&player->backpack, &player->gold); break;
+    void backpack_buy_pouch(struct Backpack *bp, struct Player *player); break;
     case BP_BACK:
     default: break;
     }
