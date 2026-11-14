@@ -42,7 +42,7 @@ static void resize_map_cells(struct Map *m, int h, int w)
     m->height = h; m->width = w;
 }
 
-// ---- BFS: какие клетки достижимы ----------------------------------------
+// ---- BFS ----------------------------------------------------------------
 
 static int bfs_reach(struct Map *m, int sx, int sy,
                      char reach[MAX_FOREST_SIZE][MAX_FOREST_SIZE])
@@ -72,6 +72,8 @@ static int bfs_reach(struct Map *m, int sx, int sy,
 }
 
 // ---- лес ----------------------------------------------------------------
+// Периметр — T, в стене один проход (.), при выходе за границу → пещера.
+// Вход O внутри леса убран — не нужен, пещера теперь «за границей».
 
 void generate_forest(struct Map *m, struct Player *player)
 {
@@ -88,14 +90,14 @@ void generate_forest(struct Map *m, struct Player *player)
             m->cells[y][x] = (y == 0 || y == h-1 || x == 0 || x == w-1)
                              ? CELL_TREE : CELL_FLOOR;
 
-    // один выход в случайной стене
+    // один выход в случайной стене — вырубаем дерево
     int side = rand() % 4, ex, ey, fx, fy;
     if (side == 0) { ey = 0;     ex = 1 + rand() % (w-2); fy = 1;     fx = ex; }
     if (side == 1) { ey = h - 1; ex = 1 + rand() % (w-2); fy = h - 2; fx = ex; }
     if (side == 2) { ex = 0;     ey = 1 + rand() % (h-2); fx = 1;     fy = ey; }
     if (side == 3) { ex = w - 1; ey = 1 + rand() % (h-2); fx = w - 2; fy = ey; }
 
-    // внутри — случайные деревья/камни (кроме выхода и клетки перед ним)
+    // внутри — случайные деревья/камни
     for (int y = 1; y < h - 1; y++)
         for (int x = 1; x < w - 1; x++) {
             if (x == fx && y == fy) continue;
@@ -106,17 +108,18 @@ void generate_forest(struct Map *m, struct Player *player)
     m->cells[ey][ex] = CELL_FLOOR;
     m->cells[fy][fx] = CELL_FLOOR;
 
-    // герой в центр
+    // герой — в центр (или ближайшая свободная)
     int hx = w / 2, hy = h / 2;
     if (m->cells[hy][hx] != CELL_FLOOR) {
-        for (int y = 1; y < h - 1; y++)
-            for (int x = 1; x < w - 1; x++)
-                if (m->cells[y][x] == CELL_FLOOR) { hx = x; hy = y; y = h; break; }
+        int done = 0;
+        for (int y = 1; y < h - 1 && !done; y++)
+            for (int x = 1; x < w - 1 && !done; x++)
+                if (m->cells[y][x] == CELL_FLOOR) { hx = x; hy = y; done = 1; }
     }
     m->cells[hy][hx] = CELL_HERO;
     player->x = hx; player->y = hy;
 
-    // гарантируем путь от героя до выхода
+    // гарантируем путь до прохода
     char reach[MAX_FOREST_SIZE][MAX_FOREST_SIZE];
     bfs_reach(m, hx, hy, reach);
     if (!reach[fy][fx]) {
@@ -138,16 +141,10 @@ void generate_forest(struct Map *m, struct Player *player)
             m->campfire_x = cx; m->campfire_y = cy;
         }
     }
-
-    // вход в пещеру
-    for (int t = 0; t < 400; t++) {
-        int ox = 1 + rand() % (w-2), oy = 1 + rand() % (h-2);
-        if ((ox == fx && oy == fy) || m->cells[oy][ox] != CELL_FLOOR) continue;
-        m->cells[oy][ox] = CELL_CAVE; break;
-    }
 }
 
 // ---- пещера -------------------------------------------------------------
+// В стене есть один O — «выход наружу в новый лес». Только O, не граница.
 
 void generate_cave(struct Map *m, struct Player *player)
 {
@@ -173,7 +170,7 @@ void generate_cave(struct Map *m, struct Player *player)
     m->cells[hy][hx] = CELL_HERO;
     player->x = hx; player->y = hy;
 
-    // прорубаем камни, пока достижимая область < 1/3
+    // прорубаем, пока достижимая область < 1/3
     int need = ((h-2) * (w-2)) / 3; if (need < 3) need = 3;
     char reach[MAX_FOREST_SIZE][MAX_FOREST_SIZE];
     for (int t = 0; t < 100; t++) {
@@ -191,7 +188,7 @@ void generate_cave(struct Map *m, struct Player *player)
     }
     bfs_reach(m, hx, hy, reach);
 
-    // O — достижимая, не в тупике, максимально далеко
+    // O — достижимый, не тупик, максимально далеко
     int best = -1, ox = -1, oy = -1;
     for (int y = 1; y < h - 1; y++)
         for (int x = 1; x < w - 1; x++) {
@@ -207,7 +204,6 @@ void generate_cave(struct Map *m, struct Player *player)
             if (d > best) { best = d; ox = x; oy = y; }
         }
 
-    // fallback: прорубаем соседа
     if (ox == -1) {
         const int dxs[4] = {0,0,-1,1}, dys[4] = {-1,1,0,0};
         for (int d = 0; d < 4; d++) {
@@ -220,7 +216,7 @@ void generate_cave(struct Map *m, struct Player *player)
     if (ox != -1) m->cells[oy][ox] = CELL_CAVE;
 }
 
-// ---- вывод карты --------------------------------------------------------
+// ---- вывод --------------------------------------------------------------
 
 void print_map(struct Map *m)
 {
@@ -232,12 +228,17 @@ void print_map(struct Map *m)
 }
 
 // ---- ход ----------------------------------------------------------------
+// В лесу: граница → MOVE_CAVE_ENTRANCE (в пещеру!), на O — не бывает (нет O).
+// В пещере: граница → MOVE_BLOCKED, на O → MOVE_NEW_FOREST (выход в новый лес).
 
 int move_hero(struct Map *m, struct Player *player, int dx, int dy)
 {
     int nx = player->x + dx, ny = player->y + dy;
     if (nx < 0 || nx >= m->width || ny < 0 || ny >= m->height)
-        return (m->type == LOC_FOREST) ? MOVE_NEW_FOREST : MOVE_BLOCKED;
+    {
+        if (m->type == LOC_FOREST) return MOVE_CAVE_ENTRANCE;   // ← за границей леса — пещера
+        return MOVE_BLOCKED;
+    }
 
     char c = m->cells[ny][nx];
     if (c == CELL_TREE || c == CELL_ROCK || c == CELL_WALL) return MOVE_BLOCKED;
@@ -247,7 +248,12 @@ int move_hero(struct Map *m, struct Player *player, int dx, int dy)
     m->cells[player->y][player->x] = at_camp ? CELL_CAMP : CELL_FLOOR;
 
     player->x = nx; player->y = ny;
-    if (c == CELL_CAVE) return MOVE_CAVE_ENTRANCE;
+
+    // в пещере шаг на O — это выход в новый лес
+    if (c == CELL_CAVE) return MOVE_NEW_FOREST;
+    // в лесу шаг на O больше не бывает (мы убрали O), но на всякий случай:
+    if (m->type == LOC_FOREST && c == CELL_CAVE) return MOVE_CAVE_ENTRANCE;
+
     m->cells[ny][nx] = CELL_HERO;
     if (c == CELL_CAMP) return MOVE_CAMP;
     return MOVE_OK;
@@ -312,7 +318,9 @@ void run_adventure(struct Player *player, int *day, int *hour)
             if (cost == 3) printf("Перегруз! -%d вын.\n", cost);
             if (player->stamina <= 0) { printf("Без сил...\n"); evacuate = 1; running = 0; }
         }
-        else if (r == MOVE_NEW_FOREST || r == MOVE_CAVE_ENTRANCE) {
+        else if (r == MOVE_CAVE_ENTRANCE || r == MOVE_NEW_FOREST) {
+            // MOVE_CAVE_ENTRANCE — из леса за границу → пещера
+            // MOVE_NEW_FOREST     — в пещере на O → новый лес
             int was_forest = (m->type == LOC_FOREST);
             int old_x = player->x, old_y = player->y;
 
@@ -332,6 +340,7 @@ void run_adventure(struct Player *player, int *day, int *hour)
                 player->stamina -= FLOOR_STAMINA_COST;
                 player->gold += GOLD_MULTIPLIER * m->floors_passed;
 
+                // спавн на противоположной стороне
                 int gx = old_x, gy = old_y;
                 if (dy == -1) gy = m->height - 2;
                 if (dy ==  1) gy = 1;
