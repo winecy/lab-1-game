@@ -8,7 +8,7 @@
 #include "map.h"
 #include "inventory_weight.h"
 
-// ----- Пункты главного меню -----------------------------------------------
+// пункты главного меню-----------------------------------------------------
 
 enum MenuAction {
     MENU_EXIT          = 0,
@@ -26,7 +26,7 @@ enum MenuAction {
     MENU_BACKPACK      = 12
 };
 
-// ----- Пункты подменю времени ---------------------------------------------
+// пункты подменю времени---------------------------------------------------
 
 enum TimeAction {
     TIME_BACK  = 0,
@@ -35,21 +35,7 @@ enum TimeAction {
     TIME_SLEEP = 3
 };
 
-// ----- Названия предметов -------------------------------------------------
-
-void load_item_names(char item_names[MAX_ITEMS][MAX_NAME_LEN]);
-{
-    const char *names[MAX_ITEMS] = {
-        "пусто", "факел", "верёвка", "доспех", "свиток",
-        "тяжёлый камень", "зелье", "булыжник", "еда", "слиток"
-    };
-    for (int i = 0; i < MAX_ITEMS; i++) {
-        strncpy(item_names[i], names[i], MAX_NAME_LEN - 1);
-        item_names[i][MAX_NAME_LEN - 1] = '\0';
-    }
-}
-
-// ----- Подменю времени ----------------------------------------------------
+// управление временем------------------------------------------------------
 
 static void time_menu(int *day, int *hour, struct Player *player)
 {
@@ -65,7 +51,8 @@ static void time_menu(int *day, int *hour, struct Player *player)
     case TIME_WAIT: {
         int wait = read_int_safe("Сколько часов ждать (1..24): ", 1, HOURS_PER_DAY);
         int target = *hour + wait;
-        if (*hour < NIGHT_HOUR && target > NIGHT_HOUR) {
+        if (*hour < NIGHT_HOUR && target > NIGHT_HOUR)
+        {
             printf("Нельзя пройти границу 02:00 без сна!\n");
             return;
         }
@@ -89,10 +76,10 @@ static void time_menu(int *day, int *hour, struct Player *player)
     }
 }
 
-// ----- Подменю рюкзака ----------------------------------------------------
+// подменю рюкзака----------------------------------------------------------
 
 static void backpack_menu(struct Player *player,
-                          char item_names[][MAX_NAME_LEN])
+                          char item_names[MAX_ITEMS][MAX_NAME_LEN])
 {
     if (!player) { printf("Сначала создайте персонажа!\n"); return; }
 
@@ -105,13 +92,13 @@ static void backpack_menu(struct Player *player,
 
     switch (sub) {
     case BP_SHOW: backpack_show(&player->backpack, item_names); break;
-    void backpack_buy_pouch(struct Backpack *bp, struct Player *player); break;
+    case BP_BUY:  backpack_buy_pouch(&player->backpack, &player->gold); break;
     case BP_BACK:
     default: break;
     }
 }
 
-// ----- main ---------------------------------------------------------------
+// главная функция----------------------------------------------------------
 
 int main(void)
 {
@@ -123,21 +110,22 @@ int main(void)
     struct Player *player = NULL;
     int day = 1, hour = 8;
 
-    while (1) {
+    while (1)
+    {
         printf("\nВыбери пункт:\n");
-        printf("[%d]  Выход\n",                       MENU_EXIT);           //0
-        printf("[%d]  Посмотреть инвентарь\n",        MENU_INVENTORY);      //1
-        printf("[%d]  Положить предмет\n",            MENU_PUT_ITEM);       //2
-        printf("[%d]  Выбросить предмет\n",           MENU_DROP_ITEM);      //3
-        printf("[%d]  Уникальные находки\n",          MENU_UNIQUE);         //4
-        printf("[%d]  Поиск предмета\n",              MENU_SEARCH);         //5
-        printf("[%d]  Запись в дневник\n",            MENU_DIARY);          //6
-        printf("[%d]  Анализ логов\n",                MENU_ANALYZE_LOGS);   //7
-        printf("[%d] Отправиться в приключение\n",    MENU_ADVENTURE);      //8
-        printf("[%d] Создать/пересоздать персонажа\n", MENU_CREATE_PLAYER); //9
-        printf("[%d] Карточка персонажа\n",           MENU_PLAYER_CARD);    //10
-        printf("[%d] Управление временем\n",          MENU_TIME);           //11
-        printf("[%d] Рюкзак / купить подсумок\n",     MENU_BACKPACK);       //12
+        printf("[%d]  Выход\n",                        MENU_EXIT);
+        printf("[%d]  Посмотреть инвентарь\n",         MENU_INVENTORY);
+        printf("[%d]  Положить предмет\n",             MENU_PUT_ITEM);
+        printf("[%d]  Выбросить предмет\n",            MENU_DROP_ITEM);
+        printf("[%d]  Уникальные находки\n",           MENU_UNIQUE);
+        printf("[%d]  Поиск предмета\n",               MENU_SEARCH);
+        printf("[%d]  Запись в дневник\n",             MENU_DIARY);
+        printf("[%d]  Анализ логов\n",                 MENU_ANALYZE_LOGS);
+        printf("[%d] Отправиться в приключение\n",     MENU_ADVENTURE);
+        printf("[%d] Создать/пересоздать персонажа\n", MENU_CREATE_PLAYER);
+        printf("[%d] Карточка персонажа\n",            MENU_PLAYER_CARD);
+        printf("[%d] Управление временем\n",           MENU_TIME);
+        printf("[%d] Рюкзак / купить подсумок\n",      MENU_BACKPACK);
 
         int userAction = read_int_safe("Выбор: ", MENU_EXIT, MENU_BACKPACK);
 
@@ -157,7 +145,8 @@ int main(void)
         case MENU_ADVENTURE:     run_adventure(player, &day, &hour); break;
 
         case MENU_CREATE_PLAYER:
-            if (player != NULL) {
+            if (player != NULL)
+            {
                 int confirm = read_int_safe(
                     "Удалить текущего персонажа? (1-да, 0-нет): ", 0, 1);
                 if (!confirm) break;
