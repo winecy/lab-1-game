@@ -69,7 +69,67 @@ static void resize_map_cells(struct Map *m, int h, int w)
     m->width = w;
 }
 
+// BFS от (sx, sy): помечаем достижимые клетки (не стена/камень/дерево)---
+// Возвращает число достижимых клеток.
+
+static int bfs_reach(struct Map *m, int sx, int sy,
+                     char reach[MAX_FOREST_SIZE][MAX_FOREST_SIZE])
+{
+    int h = m->height, w = m->width;
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++)
+            reach[y][x] = 0;
+
+    int qx[MAX_FOREST_SIZE * MAX_FOREST_SIZE];
+    int qy[MAX_FOREST_SIZE * MAX_FOREST_SIZE];
+    int head = 0, tail = 0;
+
+    reach[sy][sx] = 1;
+    qx[tail] = sx; qy[tail] = sy; tail++;
+
+    const int dxs[4] = {0, 0, -1, 1};
+    const int dys[4] = {-1, 1, 0, 0};
+
+    while (head < tail)
+    {
+        int cx = qx[head], cy = qy[head]; head++;
+        for (int d = 0; d < 4; d++)
+        {
+            int nx = cx + dxs[d], ny = cy + dys[d];
+            if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+            if (reach[ny][nx]) continue;
+            char c = m->cells[ny][nx];
+            if (c == CELL_WALL || c == CELL_ROCK || c == CELL_TREE) continue;
+            reach[ny][nx] = 1;
+            qx[tail] = nx; qy[tail] = ny; tail++;
+        }
+    }
+    return tail;
+}
+
+// прорубание прямой линии от (x1,y1) до (x2,y2)---------------------------
+// Превращает деревья/камни на пути в пол.
+
+static void carve_line(struct Map *m, int x1, int y1, int x2, int y2)
+{
+    int cx = x1, cy = y1;
+    while (cx != x2 || cy != y2)
+    {
+        if (m->cells[cy][cx] == CELL_TREE || m->cells[cy][cx] == CELL_ROCK)
+            m->cells[cy][cx] = CELL_FLOOR;
+        if (cx < x2) cx++;
+        else if (cx > x2) cx--;
+        if (cy < y2) cy++;
+        else if (cy > y2) cy--;
+    }
+}
+
 // генерация леса-----------------------------------------------------------
+// Гарантии:
+//   - стены из деревьев по краю;
+//   - один выход — вырубленный проход;
+//   - герой всегда может дойти до выхода (прорубаем путь при необходимости);
+//   - костёр и вход в пещеру — на достижимых клетках.
 
 void generate_forest(struct Map *m, struct Player *player)
 {
@@ -82,12 +142,12 @@ void generate_forest(struct Map *m, struct Player *player)
     m->campfire_x = -1;
     m->campfire_y = -1;
 
-    // 1. всё — трава
+    // всё — трава
     for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++)
             m->cells[y][x] = CELL_FLOOR;
 
-    // 2. стены из деревьев по краям
+    // стены из деревьев по краям
     for (int x = 0; x < w; x++)
     {
         m->cells[0][x]     = CELL_TREE;
@@ -99,8 +159,8 @@ void generate_forest(struct Map *m, struct Player *player)
         m->cells[y][w - 1] = CELL_TREE;
     }
 
-    // 3. один выход — вырубаем дерево в случайной стене
-    int side = rand() % 4;            // 0=верх, 1=низ, 2=лево, 3=право
+    // один выход — вырубаем дерево в случайной стене
+    int side = rand() % 4;
     int exit_x = 0, exit_y = 0;
     if (side == 0) { exit_y = 0;     exit_x = 1 + rand() % (w - 2); }
     if (side == 1) { exit_y = h - 1; exit_x = 1 + rand() % (w - 2); }
@@ -108,21 +168,24 @@ void generate_forest(struct Map *m, struct Player *player)
     if (side == 3) { exit_x = w - 1; exit_y = 1 + rand() % (h - 2); }
     m->cells[exit_y][exit_x] = CELL_FLOOR;
 
-    // 4. случайные деревья/камни внутри (не вплотную к выходу)
+    // клетка перед выходом — всегда свободна
+    int front_x = exit_x, front_y = exit_y;
+    if (side == 0) front_y = 1;
+    if (side == 1) front_y = h - 2;
+    if (side == 2) front_x = 1;
+    if (side == 3) front_x = w - 2;
+    m->cells[front_y][front_x] = CELL_FLOOR;
+
+    // случайные деревья/камни внутри
     for (int y = 1; y < h - 1; y++)
         for (int x = 1; x < w - 1; x++)
         {
-            if ((exit_y == 0     && y == 1     && x == exit_x) ||
-                (exit_y == h - 1 && y == h - 2 && x == exit_x) ||
-                (exit_x == 0     && x == 1     && y == exit_y) ||
-                (exit_x == w - 1 && x == w - 2 && y == exit_y))
-                continue;
-
-            if (rand() % 100 < 20)
+            if (x == front_x && y == front_y) continue;
+            if (rand() % 100 < 18)
                 m->cells[y][x] = (rand() % 2 == 0) ? CELL_TREE : CELL_ROCK;
         }
 
-    // 5. герой — в центре (или ближайшей свободной клетке)
+    // герой — центр или ближайшая свободная клетка
     int hx = w / 2, hy = h / 2;
     if (m->cells[hy][hx] != CELL_FLOOR)
     {
@@ -136,24 +199,48 @@ void generate_forest(struct Map *m, struct Player *player)
     player->x = hx;
     player->y = hy;
 
-    // 6. костёр — на свободной клетке
-    for (int attempt = 0; attempt < 200 && m->campfire_x == -1; attempt++)
+    // ГАРАНТИРУЕМ: путь от героя до выхода свободен
+    char reach[MAX_FOREST_SIZE][MAX_FOREST_SIZE];
+    bfs_reach(m, hx, hy, reach);
+    if (!reach[front_y][front_x])
     {
-        int cx = rand() % w, cy = rand() % h;
+        carve_line(m, hx, hy, front_x, front_y);
+        m->cells[front_y][front_x] = CELL_FLOOR;
+        m->cells[exit_y][exit_x]   = CELL_FLOOR;
+    }
+
+    // костёр — на достижимой клетке
+    int placed = 0;
+    for (int attempt = 0; attempt < 300 && !placed; attempt++)
+    {
+        int cx = 1 + rand() % (w - 2);
+        int cy = 1 + rand() % (h - 2);
         if (m->cells[cy][cx] == CELL_FLOOR)
         {
             m->cells[cy][cx] = CELL_CAMP;
             m->campfire_x = cx;
             m->campfire_y = cy;
+            placed = 1;
         }
     }
+    if (!placed)
+        for (int y = 1; y < h - 1 && !placed; y++)
+            for (int x = 1; x < w - 1 && !placed; x++)
+                if (m->cells[y][x] == CELL_FLOOR)
+                {
+                    m->cells[y][x] = CELL_CAMP;
+                    m->campfire_x = x;
+                    m->campfire_y = y;
+                    placed = 1;
+                }
 
-    // 7. один вход в пещеру — на свободной клетке
-    int placed = 0;
+    // вход в пещеру — на достижимой клетке
+    placed = 0;
     for (int attempt = 0; attempt < 400 && !placed; attempt++)
     {
         int ox = 1 + rand() % (w - 2);
         int oy = 1 + rand() % (h - 2);
+        if (ox == front_x && oy == front_y) continue;
         if (m->cells[oy][ox] == CELL_FLOOR)
         {
             m->cells[oy][ox] = CELL_CAVE;
@@ -161,19 +248,24 @@ void generate_forest(struct Map *m, struct Player *player)
         }
     }
     if (!placed)
-    {
         for (int y = 1; y < h - 1 && !placed; y++)
-            for (int x = 1; x < w - 1; x++)
+            for (int x = 1; x < w - 1 && !placed; x++)
+            {
+                if (x == front_x && y == front_y) continue;
                 if (m->cells[y][x] == CELL_FLOOR)
                 {
                     m->cells[y][x] = CELL_CAVE;
                     placed = 1;
-                    break;
                 }
-    }
+            }
 }
 
 // генерация пещеры---------------------------------------------------------
+// Гарантии:
+//   - герой на свободной клетке;
+//   - достижимая область не меньше 1/3 карты (прорубаем камни при необходимости);
+//   - O стоит на достижимой клетке и НЕ в тупике (>= 2 открытых соседа);
+//   - абсолютный fallback: прорубаем соседа и ставим O рядом с героем.
 
 void generate_cave(struct Map *m, struct Player *player)
 {
@@ -184,7 +276,7 @@ void generate_cave(struct Map *m, struct Player *player)
 
     m->type = LOC_CAVE;
 
-    // 1. стены по краю, внутри — камни/пол
+    // стены по краю, внутри — камни/пол
     for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++)
         {
@@ -196,7 +288,7 @@ void generate_cave(struct Map *m, struct Player *player)
                 m->cells[y][x] = CELL_FLOOR;
         }
 
-    // 2. гарантируем минимум пола
+    // минимум 2 клетки пола
     int free_count = 0;
     for (int y = 1; y < h - 1; y++)
         for (int x = 1; x < w - 1; x++)
@@ -205,7 +297,7 @@ void generate_cave(struct Map *m, struct Player *player)
         for (int x = 1; x < w - 1 && free_count < 2; x++)
             if (m->cells[y][x] != CELL_FLOOR) { m->cells[y][x] = CELL_FLOOR; free_count++; }
 
-    // 3. герой — на первой свободной клетке
+    // герой — на первой свободной клетке
     int hx = -1, hy = -1;
     for (int y = 1; y < h - 1 && hx == -1; y++)
         for (int x = 1; x < w - 1; x++)
@@ -214,52 +306,88 @@ void generate_cave(struct Map *m, struct Player *player)
     player->x = hx;
     player->y = hy;
 
-    // 4. BFS от героя — отмечаем все достижимые клетки
-    char reach[MAX_CAVE_SIZE][MAX_CAVE_SIZE];
-    for (int y = 0; y < h; y++)
-        for (int x = 0; x < w; x++)
-            reach[y][x] = 0;
+    // цель: >= 1/3 всех внутренних клеток достижимы
+    int inside_total = (h - 2) * (w - 2);
+    int need = inside_total / 3;
+    if (need < 3) need = 3;
 
-    int queue_x[MAX_CAVE_SIZE * MAX_CAVE_SIZE];
-    int queue_y[MAX_CAVE_SIZE * MAX_CAVE_SIZE];
-    int qhead = 0, qtail = 0;
+    char reach[MAX_FOREST_SIZE][MAX_FOREST_SIZE];
 
-    queue_x[qtail] = hx; queue_y[qtail] = hy; qtail++;
-    reach[hy][hx] = 1;
-
-    const int dxs[4] = {0, 0, -1, 1};
-    const int dys[4] = {-1, 1, 0, 0};
-
-    while (qhead < qtail)
+    // прорубаем камни, граничащие с достижимой зоной, пока область < need
+    for (int attempt = 0; attempt < 100; attempt++)
     {
-        int cx = queue_x[qhead];
-        int cy = queue_y[qhead];
-        qhead++;
+        int reached = bfs_reach(m, hx, hy, reach);
+        if (reached >= need) break;
 
-        for (int d = 0; d < 4; d++)
-        {
-            int nx = cx + dxs[d];
-            int ny = cy + dys[d];
-            if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
-            if (reach[ny][nx]) continue;
-            char c = m->cells[ny][nx];
-            if (c == CELL_WALL || c == CELL_ROCK) continue;
-            reach[ny][nx] = 1;
-            queue_x[qtail] = nx;
-            queue_y[qtail] = ny;
-            qtail++;
-        }
+        int progress = 0;
+        for (int y = 1; y < h - 1 && !progress; y++)
+            for (int x = 1; x < w - 1 && !progress; x++)
+            {
+                if (m->cells[y][x] != CELL_ROCK) continue;
+                int touch = 0;
+                if (y > 0     && reach[y-1][x]) touch = 1;
+                if (y < h - 1 && reach[y+1][x]) touch = 1;
+                if (x > 0     && reach[y][x-1]) touch = 1;
+                if (x < w - 1 && reach[y][x+1]) touch = 1;
+                if (touch) { m->cells[y][x] = CELL_FLOOR; progress = 1; }
+            }
+        if (!progress) break;
     }
 
-    // 5. O — на достижимой клетке, максимально далёкой от героя
+    // финальный BFS
+    bfs_reach(m, hx, hy, reach);
+
+    // O — на достижимой клетке, не в тупике, максимально далеко от героя
     int best = -1, ox = -1, oy = -1;
     for (int y = 1; y < h - 1; y++)
         for (int x = 1; x < w - 1; x++)
-            if (reach[y][x] && m->cells[y][x] == CELL_FLOOR)
+        {
+            if (!reach[y][x] || m->cells[y][x] != CELL_FLOOR) continue;
+            if (x == hx && y == hy) continue;
+
+            int open_neighbors = 0;
+            const int dxs[4] = {0, 0, -1, 1};
+            const int dys[4] = {-1, 1, 0, 0};
+            for (int d = 0; d < 4; d++)
             {
-                int d = (x - hx) * (x - hx) + (y - hy) * (y - hy);
-                if (d > best) { best = d; ox = x; oy = y; }
+                int nx = x + dxs[d], ny = y + dys[d];
+                if (nx <= 0 || nx >= w - 1 || ny <= 0 || ny >= h - 1) continue;
+                char c = m->cells[ny][nx];
+                if (c == CELL_FLOOR || c == CELL_CAMP ||
+                    c == CELL_HERO || c == CELL_CAVE)
+                    open_neighbors++;
             }
+            if (open_neighbors < 2) continue;
+
+            int d = (x - hx) * (x - hx) + (y - hy) * (y - hy);
+            if (d > best) { best = d; ox = x; oy = y; }
+        }
+
+    // если «не тупиковых» нет — берём любую достижимую
+    if (ox == -1)
+        for (int y = 1; y < h - 1 && ox == -1; y++)
+            for (int x = 1; x < w - 1; x++)
+            {
+                if (!reach[y][x] || m->cells[y][x] != CELL_FLOOR) continue;
+                if (x == hx && y == hy) continue;
+                ox = x; oy = y; break;
+            }
+
+    // абсолютный fallback — прорубаем соседа героя
+    if (ox == -1)
+    {
+        const int dxs[4] = {0, 0, -1, 1};
+        const int dys[4] = {-1, 1, 0, 0};
+        for (int d = 0; d < 4; d++)
+        {
+            int nx = hx + dxs[d], ny = hy + dys[d];
+            if (nx <= 0 || nx >= w - 1 || ny <= 0 || ny >= h - 1) continue;
+            if (m->cells[ny][nx] == CELL_ROCK) m->cells[ny][nx] = CELL_FLOOR;
+            if (m->cells[ny][nx] == CELL_FLOOR)
+            { ox = nx; oy = ny; break; }
+        }
+    }
+
     if (ox != -1)
         m->cells[oy][ox] = CELL_CAVE;
 }
@@ -422,19 +550,23 @@ void run_adventure(struct Player *player, int *day, int *hour)
                 player->stamina -= FLOOR_STAMINA_COST;
                 player->gold += GOLD_MULTIPLIER * m->floors_passed;
 
+                // спавн на противоположной стороне нового леса
                 int go_x = old_x, go_y = old_y;
-                if (dy == -1) go_y = m->height - 1;
-                if (dy ==  1) go_y = 0;
-                if (dx == -1) go_x = m->width  - 1;
-                if (dx ==  1) go_x = 0;
-                if (go_x < 0) go_x = 0;
-                if (go_x >= m->width)  go_x = m->width - 1;
-                if (go_y < 0) go_y = 0;
-                if (go_y >= m->height) go_y = m->height - 1;
+                if (dy == -1) go_y = m->height - 2;
+                if (dy ==  1) go_y = 1;
+                if (dx == -1) go_x = m->width  - 2;
+                if (dx ==  1) go_x = 1;
+                if (go_x < 1) go_x = 1;
+                if (go_x >= m->width  - 1) go_x = m->width  - 2;
+                if (go_y < 1) go_y = 1;
+                if (go_y >= m->height - 1) go_y = m->height - 2;
                 if (m->cells[go_y][go_x] != CELL_FLOOR)
                 {
-                    go_x = player->x;
-                    go_y = player->y;
+                    int found = 0;
+                    for (int ry = 1; ry < m->height - 1 && !found; ry++)
+                        for (int rx = 1; rx < m->width - 1 && !found; rx++)
+                            if (m->cells[ry][rx] == CELL_FLOOR)
+                            { go_x = rx; go_y = ry; found = 1; }
                 }
                 m->cells[player->y][player->x] = CELL_FLOOR;
                 player->x = go_x;
