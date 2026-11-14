@@ -27,10 +27,6 @@
 #define START_STAMINA   50
 #define START_GOLD       0
 
-// ВРЕМЕННЫЕ алиасы для совместимости со старым кодом (удалить в коммите 4)
-#define inventory_size  INVENTORY_SIZE
-#define player_name_max PLAYER_NAME_MAX
-#define hours_per_day   HOURS_PER_DAY
 
 // прототипы утилит (реализация — utils.c в коммите 2)----------------------
 
