@@ -48,17 +48,24 @@ static void time_menu(int *day, int *hour, struct Player *player)
         printf("Текущее время: день %d, час %d:00\n", *day, *hour);
         break;
 
-    case TIME_WAIT: {
+   case TIME_WAIT: {
     int wait = read_int_safe("Сколько часов ждать (1..24): ", 1, HOURS_PER_DAY);
     
-    // Считаем, сколько часов осталось до ближайшего NIGHT_HOUR
-    int hours_to_night = (NIGHT_HOUR - *hour + HOURS_PER_DAY) % HOURS_PER_DAY;
-    
-    // Если сейчас ровно NIGHT_HOUR (hours_to_night == 0), ждать вообще нельзя (или можно до следующего дня — зависит от правил)
-    // Если hours_to_night > 0 и wait > hours_to_night, значит мы пересекаем границу
-    if (hours_to_night == 0 || wait > hours_to_night) {
+    int temp_hour = *hour;
+    int blocked = 0; // Флаг, что мы упёрлись в границу
+
+    for (int i = 0; i < wait; i++) {
+        // Если мы СЕЙЧАС стоим на NIGHT_HOUR (02:00) и пытаемся ждать дальше — блок!
+        if (temp_hour == NIGHT_HOUR) {
+            blocked = 1;
+            break;
+        }
+        temp_hour = (temp_hour + 1) % HOURS_PER_DAY;
+    }
+
+    if (blocked) {
         printf("Нельзя пройти границу 02:00 без сна!\n");
-        break;
+        break; // Если это void-функция и нужно выйти из неё — верните return
     }
 
     *hour += wait;
@@ -69,6 +76,7 @@ static void time_menu(int *day, int *hour, struct Player *player)
     printf("Время: день %d, час %d:00\n", *day, *hour);
     break;
 }
+
 
 
     case TIME_SLEEP:
