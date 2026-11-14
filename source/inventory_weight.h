@@ -1,7 +1,6 @@
 #ifndef INVENTORY_WEIGHT_H          
 #define INVENTORY_WEIGHT_H
 
-#include "player.h"
 
 enum LoadState {
     LOAD_LIGHT = 0,
