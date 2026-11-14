@@ -3,24 +3,6 @@
 
 #include "utils.h"
 
-// перечисление пунктов меню------------------------------------------------
-
-enum MenuAction {
-    MENU_EXIT          = 0,
-    MENU_TIME          = 1,
-    MENU_WAIT          = 2,
-    MENU_SHOW_INV      = 3,
-    MENU_PUT_ITEM      = 4,
-    MENU_DROP_ITEM     = 5,
-    MENU_UNIQUE        = 6,
-    MENU_SEARCH        = 7,
-    MENU_DIARY         = 8,
-    MENU_LOGS          = 9,
-    MENU_ADVENTURE     = 10,
-    MENU_CREATE_PLAYER = 11,
-    MENU_PLAYER_CARD   = 12,
-    MENU_TIME_CONTROL  = 13
-};
 
 // структура игрока---------------------------------------------------------
 
