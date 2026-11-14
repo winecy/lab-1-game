@@ -41,14 +41,43 @@ void free_map(struct Map *m)
     free(m);
 }
 
+// перевыделение cells под новый размер-------------------------------------
+
+static void resize_map_cells(struct Map *m, int h, int w)
+{
+    if (m->cells != NULL)
+    {
+        for (int i = 0; i < m->height; i++) free(m->cells[i]);
+        free(m->cells);
+    }
+    m->cells = (char **)malloc(h * sizeof(char *));
+    if (m->cells == NULL) { m->height = 0; m->width = 0; return; }
+    for (int i = 0; i < h; i++)
+    {
+        m->cells[i] = (char *)malloc(w * sizeof(char));
+        if (m->cells[i] == NULL)
+        {
+            for (int j = 0; j < i; j++) free(m->cells[j]);
+            free(m->cells);
+            m->cells = NULL;
+            m->height = 0;
+            m->width = 0;
+            return;
+        }
+    }
+    m->height = h;
+    m->width = w;
+}
+
 // генерация леса-----------------------------------------------------------
 
 void generate_forest(struct Map *m, struct Player *player)
 {
     int h = MIN_FOREST_SIZE + rand() % (MAX_FOREST_SIZE - MIN_FOREST_SIZE + 1);
     int w = MIN_FOREST_SIZE + rand() % (MAX_FOREST_SIZE - MIN_FOREST_SIZE + 1);
-    m->height = h;
-    m->width = w;
+
+    resize_map_cells(m, h, w);
+
     m->type = LOC_FOREST;
     m->campfire_x = -1;
     m->campfire_y = -1;
@@ -113,8 +142,9 @@ void generate_cave(struct Map *m, struct Player *player)
 {
     int h = MIN_CAVE_SIZE + rand() % (MAX_CAVE_SIZE - MIN_CAVE_SIZE + 1);
     int w = MIN_CAVE_SIZE + rand() % (MAX_CAVE_SIZE - MIN_CAVE_SIZE + 1);
-    m->height = h;
-    m->width = w;
+
+    resize_map_cells(m, h, w);
+
     m->type = LOC_CAVE;
 
     for (int y = 0; y < h; y++)
