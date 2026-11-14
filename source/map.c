@@ -35,7 +35,6 @@ void free_map(struct Map *m)
     free(m);
 }
 
-// тихая очистка — для промежуточных карт во время похода
 static void free_map_quiet(struct Map *m)
 {
     if (m == NULL) return;
@@ -93,20 +92,17 @@ void generate_forest(struct Map *m, struct Player *player)
     m->type = LOC_FOREST;
     m->campfire_x = m->campfire_y = -1;
 
-    // периметр — T, внутри — трава
     for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++)
             m->cells[y][x] = (y == 0 || y == h-1 || x == 0 || x == w-1)
                              ? CELL_TREE : CELL_FLOOR;
 
-    // один выход в случайной стене
     int side = rand() % 4, ex, ey, fx, fy;
     if (side == 0) { ey = 0;     ex = 1 + rand() % (w-2); fy = 1;     fx = ex; }
     if (side == 1) { ey = h - 1; ex = 1 + rand() % (w-2); fy = h - 2; fx = ex; }
     if (side == 2) { ex = 0;     ey = 1 + rand() % (h-2); fx = 1;     fy = ey; }
     if (side == 3) { ex = w - 1; ey = 1 + rand() % (h-2); fx = w - 2; fy = ey; }
 
-    // внутри — случайные деревья/камни
     for (int y = 1; y < h - 1; y++)
         for (int x = 1; x < w - 1; x++) {
             if (x == fx && y == fy) continue;
@@ -117,7 +113,6 @@ void generate_forest(struct Map *m, struct Player *player)
     m->cells[ey][ex] = CELL_FLOOR;
     m->cells[fy][fx] = CELL_FLOOR;
 
-    // герой — в центр (или ближайшая свободная)
     int hx = w / 2, hy = h / 2;
     if (m->cells[hy][hx] != CELL_FLOOR) {
         int done = 0;
@@ -128,7 +123,6 @@ void generate_forest(struct Map *m, struct Player *player)
     m->cells[hy][hx] = CELL_HERO;
     player->x = hx; player->y = hy;
 
-    // гарантируем путь до прохода
     char reach[MAX_FOREST_SIZE][MAX_FOREST_SIZE];
     bfs_reach(m, hx, hy, reach);
     if (!reach[fy][fx]) {
@@ -142,7 +136,6 @@ void generate_forest(struct Map *m, struct Player *player)
         m->cells[ey][ex] = CELL_FLOOR;
     }
 
-    // костёр
     for (int t = 0; t < 300 && m->campfire_x == -1; t++) {
         int cx = 1 + rand() % (w-2), cy = 1 + rand() % (h-2);
         if (m->cells[cy][cx] == CELL_FLOOR) {
@@ -322,7 +315,7 @@ void run_adventure(struct Player *player, int *day, int *hour)
             int was_forest = (m->type == LOC_FOREST);
             int old_x = player->x, old_y = player->y;
 
-            free_map_quiet(m);                        // тихо
+            free_map_quiet(m);
             m = create_map(MIN_FOREST_SIZE, MIN_FOREST_SIZE);
             if (!m) { printf("Ошибка памяти!\n"); return; }
 
@@ -371,5 +364,5 @@ void run_adventure(struct Player *player, int *day, int *hour)
         player->gold /= GOLD_EVAC_PENALTY;
         printf("Эвакуация! Золото: %d\n", player->gold);
     }
-    free_map(m);                                       // с принтом в конце похода
+    free_map(m);
 }
