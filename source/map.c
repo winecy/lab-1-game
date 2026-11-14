@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "map.h"
+#include "inventory_weight.h"
 
 // выделение памяти---------------------------------------------------------
 
@@ -37,7 +38,6 @@ void free_map(struct Map *m)
     if (m == NULL) return;
     for (int i = 0; i < m->height; i++) free(m->cells[i]);
     free(m->cells);
-    printf("Память структуры по адресу %p освобождена\n", (void *)m);
     free(m);
 }
 
@@ -205,165 +205,8 @@ int move_hero(struct Map *m, struct Player *player, int dx, int dy)
 
 void run_adventure(struct Player *player, int *day, int *hour)
 {
-    // допуск к походу
     if (player == NULL)
     {
         printf("Сначала создайте персонажа!\n");
         return;
-    }
-    if (player->stamina <= 0)
-    {
-        printf("Нет выносливости для похода! Отдохните.\n");
-        return;
-    }
-    if (*hour >= NIGHT_HOUR && *hour < SLEEP_HOUR)
-    {
-        printf("Сейчас ночь (02:00–08:00), фермер должен спать!\n");
-        return;
-    }
-
-    struct Map *m = create_map(MIN_FOREST_SIZE, MIN_FOREST_SIZE);
-    if (m == NULL) { printf("Ошибка выделения памяти!\n"); return; }
-
-    generate_forest(m, player);
-    int running = 1;
-    int evacuate = 0;
-
-    while (running)
-    {
-        print_map(m);
-
-        // HUD
-        printf("HP: %d/%d | Выносливость: %d/%d | Золото: %d | Этаж: %d | Время: %d:00\n",
-               player->hp, player->max_hp,
-               player->stamina, player->max_stamina,
-               player->gold, m->floors_passed + 1, *hour);
-
-        printf("Ход (WASD / Q) > ");
-        char cmd;
-        if (scanf(" %c", &cmd) != 1) break;
-        int ch;
-        while ((ch = getchar()) != '\n' && ch != EOF) { }
-        cmd = (char)toupper((unsigned char)cmd);
-
-        // Q — штатное возвращение домой (только в лесу и на костре)
-        if (cmd == 'Q')
-        {
-            if (m->type == LOC_FOREST &&
-                player->x == m->campfire_x && player->y == m->campfire_y)
-            {
-                printf("Вы вернулись домой! Пройдено этажей: %d, золото сохранено: %d\n",
-                       m->floors_passed, player->gold);
-                running = 0;
-            }
-            else if (m->type == LOC_FOREST)
-                printf("Домой можно только стоя на костре ^.\n");
-            else
-                printf("Из пещеры нет прямого пути домой. Найдите O.\n");
-            continue;
-        }
-
-        int dx = 0, dy = 0;
-        if      (cmd == 'W') dy = -1;
-        else if (cmd == 'S') dy =  1;
-        else if (cmd == 'A') dx = -1;
-        else if (cmd == 'D') dx =  1;
-        else { printf("Неизвестная команда.\n"); continue; }
-
-        int result = move_hero(m, player, dx, dy);
-
-        if (result == MOVE_BLOCKED)
-        {
-            printf("Туда нельзя.\n");
-        }
-        else if (result == MOVE_OK)
-        {
-            // каждый успешный шаг — 1 выносливости
-            player->stamina -= STEP_STAMINA_COST;
-            if (player->stamina <= 0)
-            {
-                printf("Выносливость на нуле! Фермер падает без сил...\n");
-                evacuate = 1; running = 0;
-            }
-        }
-        else if (result == MOVE_CAMP)
-        {
-            printf("Вы у костра. Нажмите Q, чтобы вернуться домой.\n");
-        }
-        else if (result == MOVE_NEW_FOREST || result == MOVE_CAVE_ENTRANCE)
-        {
-            int was_forest = (m->type == LOC_FOREST);
-            int old_x = player->x, old_y = player->y;
-
-            free_map(m);
-            m = create_map(MIN_FOREST_SIZE, MIN_FOREST_SIZE);
-            if (m == NULL) { printf("Ошибка памяти!\n"); return; }
-
-            if (was_forest)
-            {
-                // лес → пещера (это НЕ новый этаж)
-                generate_cave(m, player);
-                printf("Вы вошли в пещеру...\n");
-            }
-            else
-            {
-                // пещера → новый лес (это новый этаж)
-                m->floors_passed++;
-                generate_forest(m, player);
-
-                // расход времени и выносливости за переход на этаж
-                *hour += FLOOR_TIME_COST;
-                if (*hour >= HOURS_PER_DAY) { *hour %= HOURS_PER_DAY; (*day)++; }
-                player->stamina -= FLOOR_STAMINA_COST;
-
-                // награда золотом
-                player->gold += GOLD_MULTIPLIER * m->floors_passed;
-
-                // переставляем героя к противоположному краю (как в старом коде)
-                int go_x = old_x, go_y = old_y;
-                if (dy == -1) go_y = m->height - 1;
-                if (dy ==  1) go_y = 0;
-                if (dx == -1) go_x = m->width  - 1;
-                if (dx ==  1) go_x = 0;
-                if (go_x < 0) go_x = 0;
-                if (go_x >= m->width)  go_x = m->width - 1;
-                if (go_y < 0) go_y = 0;
-                if (go_y >= m->height) go_y = m->height - 1;
-                if (m->cells[go_y][go_x] != CELL_FLOOR)
-                {
-                    go_x = player->x;
-                    go_y = player->y;
-                }
-                m->cells[player->y][player->x] = CELL_FLOOR;
-                player->x = go_x;
-                player->y = go_y;
-                m->cells[player->y][player->x] = CELL_HERO;
-
-                printf("Вы вышли из пещеры в новый лес. Этаж: %d, золото: %d\n",
-                       m->floors_passed + 1, player->gold);
-            }
-
-            // экстренная эвакуация: ночь или обнуление выносливости
-            if (*hour >= NIGHT_HOUR && *hour < SLEEP_HOUR)
-            {
-                printf("Наступила ночь! Фермер падает без сил...\n");
-                evacuate = 1; running = 0;
-            }
-            else if (player->stamina <= 0)
-            {
-                printf("Выносливость на нуле! Фермер падает без сил...\n");
-                evacuate = 1; running = 0;
-            }
-        }
-    }
-
-    // экстренная эвакуация — половина золота спасателям
-    if (evacuate)
-    {
-        player->gold /= GOLD_EVAC_PENALTY;
-        printf("Экстренная эвакуация! Спасатели забрали половину золота. Осталось: %d\n",
-               player->gold);
-    }
-
-    free_map(m);
-}
+   
