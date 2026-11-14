@@ -61,7 +61,7 @@ struct Map {
     int    campfire_y;
 };
 
-// прототипы (реализация — map.c в коммите 3)-------------------------------
+// прототипы (реализация — map.c)-------------------------------------------
 
 struct Map *create_map(int h, int w);
 void free_map(struct Map *m);
