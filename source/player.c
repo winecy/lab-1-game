@@ -3,11 +3,14 @@
 #include <string.h>
 #include <time.h>
 #include "player.h"
+#include "inventory_weight.h"
+#include "utils.h"
 
 // создание игрока----------------------------------------------------------
 
 struct Player *create_player(char item_names[MAX_ITEMS][MAX_NAME_LEN])
 {
+    (void)item_names;
     struct Player *p = (struct Player *)malloc(sizeof(struct Player));
     if (p == NULL)
     {
@@ -16,24 +19,23 @@ struct Player *create_player(char item_names[MAX_ITEMS][MAX_NAME_LEN])
     }
     read_string_safe("Введите имя: ", p->name, PLAYER_NAME_MAX);
 
-    p->hp = START_HP;
-    p->max_hp = START_HP;
-    p->stamina = START_STAMINA;
+    p->hp          = START_HP;
+    p->max_hp      = START_HP;
+    p->stamina     = START_STAMINA;
     p->max_stamina = START_STAMINA;
-    p->gold = START_GOLD;
+    p->gold        = START_GOLD;
     p->x = 0;
     p->y = 0;
-    for (int i = 0; i < INVENTORY_SIZE; i++) p->inventory[i] = 0;
 
-    printf("Персонаж \"%s\" создан! Адрес: %p\n", p->name, (void *)p);
-    (void)item_names;
+    backpack_init(&p->backpack);
+
+    printf("Персонаж \"%s\" создан!\n", p->name);
     return p;
 }
 
 void free_player(struct Player *player)
 {
     if (player == NULL) return;
-    printf("Память структуры по адресу %p освобождена\n", (void *)player);
     free(player);
 }
 
@@ -59,15 +61,9 @@ void show_player_card(struct Player *player, int day, int hour,
     printf("Золото: %d\n", player->gold);
     printf("Игровое время: день %d, час %d:00\n", day, hour);
     printf("Реальное время: %s\n", timebuf);
-    printf("Инвентарь:\n");
-    for (int i = 0; i < INVENTORY_SIZE; i++)
-    {
-        int id = player->inventory[i];
-        if (id >= 0 && id < MAX_ITEMS)
-            printf("  Слот %d: [%d] - %s\n", i, id, item_names[id]);
-        else
-            printf("  Слот %d: [%d] - неизвестный предмет.\n", i, id);
-    }
+
+    backpack_show(&player->backpack, item_names);
+
     printf("===========================\n");
 }
 
@@ -77,32 +73,34 @@ void show_inventory(struct Player *player,
                     char item_names[MAX_ITEMS][MAX_NAME_LEN])
 {
     if (player == NULL) { printf("Сначала создайте персонажа!\n"); return; }
-    printf("Инвентарь:\n");
-    for (int i = 0; i < INVENTORY_SIZE; i++)
-    {
-        int id = player->inventory[i];
-        if (id >= 0 && id < MAX_ITEMS)
-            printf("Слот %d: [%d] - %s\n", i, id, item_names[id]);
-        else
-            printf("Слот %d: [%d] - неизвестный предмет.\n", i, id);
-    }
+    backpack_show(&player->backpack, item_names);
 }
 
 void put_item(struct Player *player)
 {
     if (player == NULL) { printf("Сначала создайте персонажа!\n"); return; }
-    int slot = read_int_safe("Выберите ячейку инвентаря (0-9): ", 0, INVENTORY_SIZE - 1);
-    int id   = read_int_safe("Выберите id предмета (0-9): ", 0, MAX_ITEMS - 1);
-    player->inventory[slot] = id;
-    printf("Предмет [%d] положен в слот %d.\n", id, slot);
+    int id = read_int_safe("Выберите id предмета (0-9): ", 0, MAX_ITEMS - 1);
+    if (backpack_add(&player->backpack, id) != 0)
+        printf("Рюкзак переполнен!\n");
+    else
+        printf("Добавлено. Вес: %d/%d [%s]\n",
+               player->backpack.current_weight,
+               player->backpack.max_capacity,
+               load_state_name(player->backpack.state));
 }
 
 void drop_item(struct Player *player)
 {
     if (player == NULL) { printf("Сначала создайте персонажа!\n"); return; }
-    int slot = read_int_safe("Выберите ячейку инвентаря (0-9): ", 0, INVENTORY_SIZE - 1);
-    player->inventory[slot] = 0;
-    printf("Слот %d очищен.\n", slot);
+    if (player->backpack.count == 0) { printf("Рюкзак пуст.\n"); return; }
+    int slot = read_int_safe("Выберите номер слота: ",
+                             0, player->backpack.count - 1);
+    backpack_remove(&player->backpack, slot);
+    printf("Слот %d очищен. Вес: %d/%d [%s]\n",
+           slot,
+           player->backpack.current_weight,
+           player->backpack.max_capacity,
+           load_state_name(player->backpack.state));
 }
 
 void unique_items(struct Player *player,
@@ -111,9 +109,9 @@ void unique_items(struct Player *player,
     if (player == NULL) { printf("Сначала создайте персонажа!\n"); return; }
     int unique = 0;
     int items[MAX_ITEMS] = {0};
-    for (int i = 0; i < INVENTORY_SIZE; i++)
+    for (int i = 0; i < player->backpack.count; i++)
     {
-        int id = player->inventory[i];
+        int id = player->backpack.slots[i];
         if (id >= 0 && id < MAX_ITEMS) items[id]++;
     }
     for (int id = 1; id < MAX_ITEMS; id++)
@@ -146,8 +144,8 @@ void search_item(struct Player *player,
     }
     int found = 0;
     printf("Предмет \"%s\" (ID: %d) найден в слотах: ", search_name, target_id);
-    for (int i = 0; i < INVENTORY_SIZE; i++)
-        if (player->inventory[i] == target_id) { printf("%d ", i); found = 1; }
+    for (int i = 0; i < player->backpack.count; i++)
+        if (player->backpack.slots[i] == target_id) { printf("%d ", i); found = 1; }
     if (!found) printf("В рюкзаке этого нет.\n");
     else printf("\n");
 }
@@ -165,14 +163,15 @@ void save_diary(struct Player *player, int day, int hour,
     fprintf(file, "=== Запись в дневнике ===\n");
     fprintf(file, "Фермер: %s\n", player->name);
     fprintf(file, "Время: День %d, Час %d:00\n", day, hour);
+    fprintf(file, "Вес: %d/%d [%s]\n",
+            player->backpack.current_weight,
+            player->backpack.max_capacity,
+            load_state_name(player->backpack.state));
     fprintf(file, "Содержимое инвентаря:\n");
-    for (int i = 0; i < INVENTORY_SIZE; i++)
+    for (int i = 0; i < player->backpack.count; i++)
     {
-        int id = player->inventory[i];
-        if (id >= 0 && id < MAX_ITEMS)
-            fprintf(file, "  Слот %d: %s\n", i, item_names[id]);
-        else
-            fprintf(file, "  Слот %d: Неизвестный предмет\n", i);
+        int id = player->backpack.slots[i];
+        fprintf(file, "  Слот %d: [%d] %s\n", i, id, item_names[id]);
     }
     fprintf(file, "-------------------------\n\n");
     fclose(file);
