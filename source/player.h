@@ -15,6 +15,7 @@ struct Player {
     int  gold;
     int  x, y;                          // координаты на карте
     int  inventory[INVENTORY_SIZE];     // id предметов
+    struct Backpack backpack;
 };
 
 // прототипы (реализация — player.c в коммите 2)----------------------------
