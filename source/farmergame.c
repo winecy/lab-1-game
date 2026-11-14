@@ -37,7 +37,7 @@ enum TimeAction {
 
 // ----- Названия предметов -------------------------------------------------
 
-static void load_item_names(char item_names[][MAX_NAME_LEN])
+void load_item_names(char item_names[MAX_ITEMS][MAX_NAME_LEN]);
 {
     const char *names[MAX_ITEMS] = {
         "пусто", "факел", "верёвка", "доспех", "свиток",
