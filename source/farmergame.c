@@ -49,18 +49,31 @@ static void time_menu(int *day, int *hour, struct Player *player)
         break;
 
     case TIME_WAIT: {
-        int wait = read_int_safe("Сколько часов ждать (1..24): ", 1, HOURS_PER_DAY);
-        int target = *hour + wait;
-        if (*hour < NIGHT_HOUR && target > NIGHT_HOUR)
-        {
+    int wait = read_int_safe("Сколько часов ждать (1..24): ", 1, HOURS_PER_DAY);
+    
+    int temp_hour = *hour;
+    for (int i = 0; i < wait; i++) {
+        // Если текущий час совпадает с NIGHT_HOUR, значит мы пытаемся его перешагнуть
+        if (temp_hour == NIGHT_HOUR) {
             printf("Нельзя пройти границу 02:00 без сна!\n");
-            return;
+            break; // или return, если это отдельная void-функция
         }
-        *hour += wait;
-        while (*hour >= HOURS_PER_DAY) { *hour -= HOURS_PER_DAY; (*day)++; }
-        printf("Время: день %d, час %d:00\n", *day, *hour);
-        break;
+        temp_hour = (temp_hour + 1) % HOURS_PER_DAY;
     }
+
+    // Если цикл прервался раньше времени, выходим из case
+    if (temp_hour == NIGHT_HOUR && wait > 0) {
+        break; 
+    }
+
+    *hour += wait;
+    while (*hour >= HOURS_PER_DAY) { 
+        *hour -= HOURS_PER_DAY; 
+        (*day)++; 
+    }
+    printf("Время: день %d, час %d:00\n", *day, *hour);
+    break;
+}
 
     case TIME_SLEEP:
         if (!player) { printf("Сначала создайте персонажа!\n"); return; }
