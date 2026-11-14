@@ -29,13 +29,14 @@ struct Player *create_player(char item_names[MAX_ITEMS][MAX_NAME_LEN])
 
     backpack_init(&p->backpack);
 
-    printf("Персонаж \"%s\" создан!\n", p->name);
+    printf("Персонаж \"%s\" создан! Адрес: %p\n", p->name, (void *)p);
     return p;
 }
 
 void free_player(struct Player *player)
 {
     if (player == NULL) return;
+    printf("Память игрока по адресу %p успешно очищена\n", (void *)player);
     free(player);
 }
 
