@@ -2,7 +2,7 @@
 #define PLAYER_H
 
 #include "utils.h"
-
+#include "inventory_weight.h"
 
 // структура игрока---------------------------------------------------------
 
@@ -14,11 +14,10 @@ struct Player {
     int  max_stamina;
     int  gold;
     int  x, y;                          // координаты на карте
-    int  inventory[INVENTORY_SIZE];     // id предметов
-    struct Backpack backpack;
+    struct Backpack backpack;           // инвентарь со весом и загрузкой
 };
 
-// прототипы (реализация — player.c в коммите 2)----------------------------
+// прототипы (реализация — player.c)----------------------------------------
 
 struct Player *create_player(char item_names[MAX_ITEMS][MAX_NAME_LEN]);
 void free_player(struct Player *player);
